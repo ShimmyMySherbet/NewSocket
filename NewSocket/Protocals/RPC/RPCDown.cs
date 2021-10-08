@@ -1,7 +1,9 @@
 ﻿using NewSocket.Interfaces;
 using NewSocket.Models;
+using NewSocket.Protocals.RPC.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,44 +19,45 @@ namespace NewSocket.Protocals.RPC
         public ulong MessageID { get; }
 
         public bool Complete { get; private set; } = false;
+
+        public bool IsResponse { get; private set; }
+
         public string LocalMethod { get; private set; }
 
         public List<string> ParameterJson => m_Parameters;
-        
-        private int m_ParamCount;
-        public bool IsResponse { get; private set; }
-        public ulong OriginMessage { get; private set; }
 
-        private bool m_WantsResponse;
+        public int ObjectCount { get; private set; }
 
+        public ulong RPCID { get; private set; }
+
+        public RPCProtocal Protocal { get; }
 
         private bool m_Init = true;
-
         private List<string> m_Parameters = new List<string>();
         private MarshalAllocMemoryStream m_CurrentObject;
         private int m_ParamPosititon = 0;
         private byte[] m_Buffer = new byte[1024 * 6];
 
-        public RPCDown(ulong messageID)
+        public RPCDown(ulong messageID, RPCProtocal protocal)
         {
-            MessageID = MessageID;
+            MessageID = messageID;
+            Protocal = protocal;
         }
 
         public async Task<bool> Read(Stream stream, CancellationToken token)
         {
             if (m_Init)
             {
-                LocalMethod = await stream.NetReadString();
-                m_ParamCount = await stream.NetReadInt32();
-                m_WantsResponse = await stream.NetReadBool();
                 IsResponse = await stream.NetReadBool();
-                if (IsResponse)
-                {
-                    OriginMessage = await stream.NetReadUInt64();
-                }
-                m_Init = false;
+                ObjectCount = await stream.NetReadInt32();
+                RPCID = await stream.NetReadUInt64();
 
-                if (m_ParamCount == 0)
+                if (!IsResponse)
+                {
+                    LocalMethod = await stream.NetReadString();
+                }
+
+                if (ObjectCount == 0)
                 {
                     WantsToDispatch = true;
                     Complete = true;
@@ -89,7 +92,7 @@ namespace NewSocket.Protocals.RPC
                 m_CurrentObject.Dispose();
                 m_CurrentObject = null;
 
-                if (m_ParamPosititon == m_ParamCount)
+                if (m_ParamPosititon == ObjectCount)
                 {
                     WantsToDispatch = true;
                     Complete = true;
@@ -101,14 +104,14 @@ namespace NewSocket.Protocals.RPC
 
         public Task Dispatch()
         {
-            Console.WriteLine($"Param Count: {m_ParamCount}");
-            Console.WriteLine($"IsResponse: {IsResponse}");
-            Console.WriteLine($"OrigonalMessage: {OriginMessage}");
-            Console.WriteLine($"Wants Response: {m_WantsResponse}");
-            Console.WriteLine($"Method: {LocalMethod}");
-            foreach (var p in m_Parameters)
+            Debug.WriteLine($"Dispatch {MessageID}; RPCID: {RPCID}");
+            if (IsResponse)
             {
-                Console.WriteLine($"[param]\n{p}");
+                var response = new RPCParameters(ParameterJson);
+                Protocal.RequestRegistry.ReleaseRequest(RPCID, response);
+            } else
+            {
+                Protocal.DispatchRPC(RPCID, LocalMethod, new RPCParameters(ParameterJson));
             }
             return Task.CompletedTask;
         }

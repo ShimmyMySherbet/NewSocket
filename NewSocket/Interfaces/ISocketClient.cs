@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using NewSocket.Models;
 
 namespace NewSocket.Interfaces
 {
     public interface ISocketClient
     {
-        
+        int DownBufferSize { get; }
+        int UpBufferSize { get; }
+        int UpTransferSize { get; }
+        IDAssigner MessageIDAssigner { get; }
+
+        void Enqueue(IMessageUp message);
     }
 }

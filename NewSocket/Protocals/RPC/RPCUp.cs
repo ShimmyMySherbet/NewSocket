@@ -1,5 +1,6 @@
 ﻿using NewSocket.Interfaces;
 using NewSocket.Models;
+using NewSocket.Protocals.RPC.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
@@ -25,9 +26,12 @@ namespace NewSocket.Protocals.RPC
 
         public string RemoteMethod { get; }
 
-        public ulong RespondingTo { get; }
 
         public bool WantsResponse { get; } = false;
+
+        public ulong RPCMessageID { get; } = 0;
+
+        public RPCHandle Handle { get; }
 
         private MarshalAllocMemoryStream m_CurrentObject;
         private IEnumerator m_ParameterSource;
@@ -38,41 +42,51 @@ namespace NewSocket.Protocals.RPC
 
         private byte[] m_Buffer;
 
-
-
-        public RPCUp(ulong messageID, string method, object[] parameters, int bufferSize)
+        public RPCUp(ISocketClient client, RPCHandle handle, string remoteMethod, params object[] parameters)
         {
-            RemoteMethod = method;
+            MessageID = handle.MessageID;
+            RPCMessageID = handle.RPCID;
+            RemoteMethod = remoteMethod;
             Parameters = parameters;
             IsResponse = false;
-            RespondingTo = 0;
-            MessageID = messageID;
+            m_Buffer = new byte[client.UpBufferSize];
             m_ParameterSource = parameters.GetEnumerator();
-            m_Buffer = new byte[bufferSize];
+            IsResponse = false;
+            Handle = handle;
         }
 
-        public RPCUp(ulong messageID, string method, ulong replyingTo, object response, int bufferSize)
+        public RPCUp(ISocketClient client, RPCHandle handle, object response)
         {
-            RemoteMethod = method;
+            MessageID = handle.MessageID;
+            RPCMessageID = handle.RPCID;
+            RemoteMethod = null;
             Parameters = new object[] { response };
             IsResponse = true;
-            RespondingTo = replyingTo;
-            MessageID = messageID;
+            m_Buffer = new byte[client.UpBufferSize];
             m_ParameterSource = Parameters.GetEnumerator();
-            m_Buffer = new byte[bufferSize];
+            Handle = handle;
         }
 
+        public RPCUp(ISocketClient client, RPCHandle handle)
+        {
+            MessageID = handle.MessageID;
+            RPCMessageID = handle.RPCID;
+            RemoteMethod = null;
+            Parameters = new object[0];
+            IsResponse = true;
+            m_Buffer = new byte[client.UpBufferSize];
+            m_ParameterSource = Parameters.GetEnumerator();
+            Handle = handle;
+        }
 
         private bool m_Init = true;
 
         /* <Init>
          *     [bool]    IsResponse
          *     [int]     Parameter Count
-         *     <if Response>
-         *         [ulong]  Origonal RPC ID
-         *         
-         *     <if Request>
-         *          [Ulong]  RPC ID
+         *     [Ulong]  RPC ID       <Request: New ID|Response: Origonal ID>
+         *     
+         *     <if Not Response>
          *          [String] Method
          * 
          * <Parameter>
@@ -89,12 +103,16 @@ namespace NewSocket.Protocals.RPC
         {
             if (m_Init)
             {
-                await stream.Write(RemoteMethod);
-                await stream.Write(Parameters.Length);
-                await stream.Write(WantsResponse);
+                //await stream.Write(RemoteMethod);
+                //await stream.Write(Parameters.Length);
+                //await stream.Write(WantsResponse);
                 await stream.Write(IsResponse);
-                if (IsResponse)
-                    await stream.Write(RespondingTo);
+                await stream.Write(Parameters.Length);
+                await stream.Write(RPCMessageID);
+                if (!IsResponse)
+                {
+                    await stream.Write(RemoteMethod);
+                }
                 m_Init = false;
             }
 

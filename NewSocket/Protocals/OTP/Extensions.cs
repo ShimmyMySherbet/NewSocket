@@ -14,14 +14,14 @@ namespace NewSocket.Protocals.OTP
         public static void OTPSend(this BaseSocketClient client, string channel, object obj)
         {
             var otp = client.GetProtocal<ObjectTransferProtocal>();
-            var msg = otp.CreateUp(client.UpIDAssigner.AssignID(), client, channel, obj);
+            var msg = otp.CreateUp(client.MessageIDAssigner.AssignID(), client, channel, obj);
             client.Enqueue(msg);
         }
 
         public static void OTPSend(this BaseSocketClient client, string channel, Stream stream)
         {
             var otp = client.GetProtocal<ObjectTransferProtocal>();
-            var msg = otp.CreateUp(client.UpIDAssigner.AssignID(), client, channel, stream: stream);
+            var msg = otp.CreateUp(client.MessageIDAssigner.AssignID(), client, channel, stream: stream);
             client.Enqueue(msg);
         }
     }

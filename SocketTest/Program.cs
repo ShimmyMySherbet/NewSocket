@@ -15,6 +15,8 @@ namespace SocketTest
         public static Stopwatch Stopwatch = new Stopwatch();
         static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
+
             var listener = new TcpListener(IPAddress.Loopback, 2122);
             listener.Start();
 
@@ -24,6 +26,14 @@ namespace SocketTest
 
 
             Thread.Sleep(-1);
+        }
+
+        private static void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+        {
+            Debug.WriteLine($"[First Chance] {e.Exception.Message}");
+            Debug.WriteLine($"[First Chance] {e.Exception.Source}");
+            Debug.WriteLine($"[First Chance] {e.Exception.StackTrace}");
+            throw e.Exception;
         }
 
         private static async Task Connect()

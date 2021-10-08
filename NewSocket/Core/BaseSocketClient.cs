@@ -24,7 +24,7 @@ namespace NewSocket.Core
 
         private MessageCache m_Cache = new MessageCache();
 
-        public IDAssigner UpIDAssigner = new IDAssigner();
+        public IDAssigner MessageIDAssigner { get; } = new IDAssigner();
 
         private IScheduler<IMessageUp> m_MessageScheduler = new RotaryScheduler<IMessageUp>();
 

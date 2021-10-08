@@ -4,11 +4,12 @@ using NewSocket.Protocals.OTP;
 using NewSocket.Protocals.RPC;
 using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SocketTest
 {
+    public delegate Task<string> ResponseDelegate();
+
     public class Client
     {
         public BaseSocketClient Server;
@@ -19,7 +20,14 @@ namespace SocketTest
             Server.Name = "Client";
             Server.Start();
             Server.RegisterProtocal(new ObjectTransferProtocal()).MessageRecieved += Server_MessageRecieved;
-            Server.RegisterProtocal<RPCProtocal>(new RPCProtocal());
+            var rpc = Server.RegisterProtocal<RPCProtocal>(new RPCProtocal(Server));
+
+            rpc.HandlerRegistry.Register("GetResponse", new ResponseDelegate(GetResponse));
+        }
+
+        private async Task<string> GetResponse()
+        {
+            return "GAY!";
         }
 
         private async Task Server_MessageRecieved(string channel, Stream content)

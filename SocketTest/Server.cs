@@ -2,6 +2,7 @@
 using NewSocket.Protocals.OTP;
 using NewSocket.Protocals.RPC;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,15 +19,23 @@ namespace SocketTest
             Client.Start();
             Client.Name = "Server";
             Client.RegisterProtocal(new ObjectTransferProtocal()).MessageRecieved += Server_MessageRecieved;
-            Client.RegisterProtocal<RPCProtocal>(new RPCProtocal());
+            var rpc = Client.RegisterProtocal<RPCProtocal>(new RPCProtocal(Client));
 
-            var msg = Client.GetProtocal<RPCProtocal>().CreateRPCResponse(Client, 696969, "NOP", "GAYASS!");
-            Client.Enqueue(msg);
-
-            for (int i = 0; i < 10; i++)
+            ThreadPool.QueueUserWorkItem(async (_) =>
             {
-                Client.OTPSend($"Channel{i}", $"Hello x {i}!");
-            }
+                var sw = new Stopwatch();
+                for (int i = 0; i < 10; i++)
+                {
+
+                    Console.WriteLine("Sending...");
+                    sw.Restart();
+
+                    var resp = await rpc.QueryAsync<string>("GetResponse");
+                    sw.Stop();
+                    Console.WriteLine($"Response: {resp}");
+                    Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms");
+                }
+            });
         }
 
         private Task Server_MessageRecieved(string channel, Stream content)
