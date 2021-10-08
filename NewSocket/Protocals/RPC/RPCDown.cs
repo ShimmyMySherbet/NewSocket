@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -44,6 +45,7 @@ namespace NewSocket.Protocals.RPC
             Protocal = protocal;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task<bool> Read(Stream stream, CancellationToken token)
         {
             if (m_Init)
@@ -51,6 +53,8 @@ namespace NewSocket.Protocals.RPC
                 IsResponse = await stream.NetReadBool();
                 ObjectCount = await stream.NetReadInt32();
                 RPCID = await stream.NetReadUInt64();
+
+                m_Init = false;
 
                 if (!IsResponse)
                 {
@@ -102,16 +106,17 @@ namespace NewSocket.Protocals.RPC
             return false;
         }
 
+
         public Task Dispatch()
         {
-            Debug.WriteLine($"Dispatch {MessageID}; RPCID: {RPCID}");
             if (IsResponse)
             {
-                var response = new RPCParameters(ParameterJson);
+                var response = new RPCData(ParameterJson);
                 Protocal.RequestRegistry.ReleaseRequest(RPCID, response);
-            } else
+            }
+            else
             {
-                Protocal.DispatchRPC(RPCID, LocalMethod, new RPCParameters(ParameterJson));
+                Protocal.DispatchRPC(RPCID, LocalMethod, new RPCData(ParameterJson));
             }
             return Task.CompletedTask;
         }

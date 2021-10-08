@@ -26,6 +26,7 @@ namespace NewSocket
 
         public static void Write(string source, string message)
         {
+            return;
             lock (LK)
             {
                 var pre = Console.ForegroundColor;

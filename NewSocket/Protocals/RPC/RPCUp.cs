@@ -2,10 +2,9 @@
 using NewSocket.Models;
 using NewSocket.Protocals.RPC.Models;
 using Newtonsoft.Json;
-using System;
 using System.Collections;
 using System.IO;
-using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,7 +25,6 @@ namespace NewSocket.Protocals.RPC
 
         public string RemoteMethod { get; }
 
-
         public bool WantsResponse { get; } = false;
 
         public ulong RPCMessageID { get; } = 0;
@@ -35,7 +33,7 @@ namespace NewSocket.Protocals.RPC
 
         private MarshalAllocMemoryStream m_CurrentObject;
         private IEnumerator m_ParameterSource;
-
+        private int m_Sent = 0;
         private long m_CurrentObjectRemainingBytes => m_CurrentObject.Length - m_CurrentObject.Position;
 
         private int m_MaxTransferSize => 1024 * 8;
@@ -85,29 +83,28 @@ namespace NewSocket.Protocals.RPC
          *     [bool]    IsResponse
          *     [int]     Parameter Count
          *     [Ulong]  RPC ID       <Request: New ID|Response: Origonal ID>
-         *     
+         *
          *     <if Not Response>
          *          [String] Method
-         * 
+         *
          * <Parameter>
-         *  <init> 
+         *  <init>
          *      [Long] Parameter Length
-         *  
+         *
          *  <segment>
          *      [Long]  Segment Length
          *      [Bytes] Segment Data
          */
 
-
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task<bool> Write(Stream stream)
         {
             if (m_Init)
             {
-                //await stream.Write(RemoteMethod);
-                //await stream.Write(Parameters.Length);
-                //await stream.Write(WantsResponse);
+                var length = Parameters.Length;
+
                 await stream.Write(IsResponse);
-                await stream.Write(Parameters.Length);
+                await stream.Write(length);
                 await stream.Write(RPCMessageID);
                 if (!IsResponse)
                 {
@@ -125,17 +122,17 @@ namespace NewSocket.Protocals.RPC
                 }
                 else
                 {
+                    Complete = true;
                     return true;
                 }
             }
-            
+
             if (m_CurrentObject.Position == 0)
             {
                 await stream.Write(m_CurrentObject.Length);
             }
 
             var transferSize = m_CurrentObjectRemainingBytes < m_MaxTransferSize ? m_CurrentObjectRemainingBytes : m_MaxTransferSize;
-
 
             await stream.Write(transferSize);
             var remaining = transferSize;
@@ -149,14 +146,20 @@ namespace NewSocket.Protocals.RPC
 
             if (m_CurrentObjectRemainingBytes == 0)
             {
+                m_Sent++;
                 m_CurrentObject.Dispose();
                 m_CurrentObject = null;
+            }
+
+            if (m_Sent == Parameters.Length)
+            {
+                Complete = true;
+                return true;
             }
 
             return false;
         }
 
-     
         public void Dispose()
         {
         }

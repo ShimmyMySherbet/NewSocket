@@ -2,6 +2,7 @@
 using NewSocket.Models;
 using NewSocket.Protocals.OTP;
 using NewSocket.Protocals.RPC;
+using NewSocket.Protocals.RPC.Models.Delegates;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -18,16 +19,25 @@ namespace SocketTest
         {
             Server = new BaseSocketClient(stream);
             Server.Name = "Client";
-            Server.Start();
             Server.RegisterProtocal(new ObjectTransferProtocal()).MessageRecieved += Server_MessageRecieved;
             var rpc = Server.RegisterProtocal<RPCProtocal>(new RPCProtocal(Server));
 
-            rpc.HandlerRegistry.Register("GetResponse", new ResponseDelegate(GetResponse));
+            rpc.Subscribe("GetName", GetName);
+
+            var h = new FuncRPCHandlerArgs<int, int, int>(Multiply);
+            rpc.Subscribe("Multiply", h);
+
+            Server.Start();
         }
 
-        private async Task<string> GetResponse()
+
+        public string GetName()
         {
-            return "GAY!";
+            return "Shitass";
+        }
+        public int Multiply(int l, int r)
+        {
+            return l * r;
         }
 
         private async Task Server_MessageRecieved(string channel, Stream content)

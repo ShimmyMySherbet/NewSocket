@@ -1,10 +1,13 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace NewSocket.Protocals.RPC.Models
 {
-    public class RPCParameters
+    public class RPCData
     {
         public List<string> Objects { get; } = new List<string>();
 
@@ -18,7 +21,7 @@ namespace NewSocket.Protocals.RPC.Models
             return JsonConvert.DeserializeObject(Objects[index], type);
         }
 
-        public RPCParameters(List<string> objects)
+        public RPCData(List<string> objects)
         {
             Objects = objects;
         }

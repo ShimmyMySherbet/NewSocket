@@ -1,30 +1,39 @@
-﻿using NewSocket.Models;
-using System;
+﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SocketTest
 {
-    class Program
+    internal class Program
     {
         public static Stopwatch Stopwatch = new Stopwatch();
-        static void Main(string[] args)
+
+        private static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
+            Console.WriteLine($"[b] both, [s] server, [c] client");
+            var mode = Console.ReadKey();
 
-            var listener = new TcpListener(IPAddress.Loopback, 2122);
-            listener.Start();
+            Console.WriteLine();
 
+            if (mode.Key == ConsoleKey.S || mode.Key == ConsoleKey.B)
+            {
+                Console.WriteLine("RunServer");
+                AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
 
-            Task.Run(() => StartConn(listener));
-            Task.Run(() => Connect());
+                var listener = new TcpListener(IPAddress.Loopback, 2122);
+                listener.Start();
+                Task.Run(() => StartConn(listener));
+            }
+            if (mode.Key == ConsoleKey.C || mode.Key == ConsoleKey.B)
+            {
+                Console.WriteLine("Client");
+                Task.Run(() => Connect());
+            }
 
-
+            Console.WriteLine("Active.");
             Thread.Sleep(-1);
         }
 
@@ -33,7 +42,6 @@ namespace SocketTest
             Debug.WriteLine($"[First Chance] {e.Exception.Message}");
             Debug.WriteLine($"[First Chance] {e.Exception.Source}");
             Debug.WriteLine($"[First Chance] {e.Exception.StackTrace}");
-            throw e.Exception;
         }
 
         private static async Task Connect()
@@ -44,13 +52,10 @@ namespace SocketTest
             var c = new Client(cl.GetStream());
         }
 
-
-
         private static async Task StartConn(TcpListener list)
         {
             var cl = await list.AcceptTcpClientAsync();
             new Server(cl.GetStream());
         }
-
     }
 }

@@ -1,12 +1,15 @@
-﻿using NewSocket.Protocals.RPC.Models.Interfaces;
+﻿using NewSocket.Protocals.RPC.Interfaces;
 using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace NewSocket.Protocals.RPC.Models.Handlers
+namespace NewSocket.Protocals.RPC.Handlers
 {
-    public class RPCHandler
+    /// <summary>
+    /// A catch-all unsafe handler for any delegate
+    /// </summary>
+    public class GlobalDelegateHandler : IRPCHandler
     {
         public string Name { get; }
 
@@ -27,7 +30,7 @@ namespace NewSocket.Protocals.RPC.Models.Handlers
 
         private Delegate Handler;
 
-        public RPCHandler(string name, Delegate handler)
+        public GlobalDelegateHandler(string name, Delegate handler)
         {
             Name = name;
             Handler = handler;
