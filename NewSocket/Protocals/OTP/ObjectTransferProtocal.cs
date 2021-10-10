@@ -1,6 +1,8 @@
 ﻿using NewSocket.Core;
 using NewSocket.Interfaces;
+using NewSocket.Protocals.RPC;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NewSocket.Protocals.OTP
@@ -9,7 +11,7 @@ namespace NewSocket.Protocals.OTP
     {
         public byte ID => 0;
 
-        public event OTPMessageRecivedArgs MessageRecieved;
+        public event OTPMessageRecivedArgs? MessageRecieved;
 
         public Task<IMessageDown> CreateDown(ulong messageID, BaseSocketClient client)
         {
@@ -27,12 +29,13 @@ namespace NewSocket.Protocals.OTP
             return new ObjectTransferUp(messageID, client, channel, stream);
         }
 
-        internal async Task RaiseMessage(string channel, Stream stream)
+        internal Task RaiseMessage(string channel, Stream stream)
         {
             if (MessageRecieved != null)
             {
-                await MessageRecieved(channel, stream);
+                ThreadPool.QueueUserWorkItem(async (_) => await MessageRecieved(channel, stream));
             }
+            return Task.CompletedTask;
         }
     }
 }

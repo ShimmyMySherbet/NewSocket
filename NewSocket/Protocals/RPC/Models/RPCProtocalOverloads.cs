@@ -127,7 +127,7 @@ namespace NewSocket.Protocals.RPC
             SubscribeInternal(name, handler);
         }
 
-        internal void SubscribeInternal(string name, Delegate handler)
+        internal virtual void SubscribeInternal(string name, Delegate handler)
         {
             var global = new GlobalDelegateHandler(name, handler);
             HandlerRegistry.Register(name, global);

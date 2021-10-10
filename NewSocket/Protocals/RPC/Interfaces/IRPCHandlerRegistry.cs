@@ -8,6 +8,6 @@
 
         bool TryDeregister(IRPCHandler handler);
 
-        IRPCHandler GetHandler(string name);
+        IRPCHandler? GetHandler(string name);
     }
 }

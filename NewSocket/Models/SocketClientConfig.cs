@@ -15,7 +15,7 @@ namespace NewSocket.Models
         public int UpTransferSize { get; } = 1024 * 20;
         public List<IMessageProtocal> Protocals { get; } = new List<IMessageProtocal>();
 
-        public IScheduler<IMessageUp> MessageScheduler { get; } = null;
+        public IScheduler<IMessageUp>? MessageScheduler { get; } = null;
 
         public SocketClientConfig(EClientRole role = EClientRole.Any)
         {

@@ -38,20 +38,6 @@ namespace SocketTest
 
         private static void Main(string[] args)
         {
-            var info = typeof(Program).GetMethod("Trigger");
-
-            var del = DelegateFactory.CreateDelegate(info, null);
-
-            Console.WriteLine($"HD: {del != null}");
-            if (del != null)
-            {
-                var res = del.EvaluateBlocking("fucker", 10, new MTRS("GAYGAY"));
-                if (res != null)
-                {
-                    Console.WriteLine($"Returned: [{res.GetType().Name}] Str: {res}");
-                }
-            }
-            return;
             Console.WriteLine($"[b] both, [s] server, [c] client");
             var mode = Console.ReadKey();
 
@@ -76,7 +62,7 @@ namespace SocketTest
             Thread.Sleep(-1);
         }
 
-        private static void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+        private static void CurrentDomain_FirstChanceException(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
         {
             Debug.WriteLine($"[First Chance] {e.Exception.Message}");
             Debug.WriteLine($"[First Chance] {e.Exception.Source}");

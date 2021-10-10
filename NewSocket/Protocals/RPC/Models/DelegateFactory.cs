@@ -6,7 +6,7 @@ namespace NewSocket.Protocals.RPC.Models
 {
     public class DelegateFactory
     {
-        public static Delegate CreateDelegate(MethodInfo info, object declaringInstance, Assembly[] sourceAssemblies)
+        public static Delegate? CreateDelegate(MethodInfo info, object? declaringInstance, Assembly[] sourceAssemblies)
         {
             var parameters = info.GetParameters();
             Type[] paramtypes;
@@ -38,17 +38,17 @@ namespace NewSocket.Protocals.RPC.Models
             }
         }
 
-        public static Delegate CreateDelegate(MethodInfo info, object declaringInstance)
+        public static Delegate? CreateDelegate(MethodInfo info, object? declaringInstance)
         {
             return CreateDelegate(info, declaringInstance, new[] { Assembly.GetExecutingAssembly() });
         }
 
-        public static Type FindDelegate(Type returns, params Type[] parameterTypes)
+        public static Type? FindDelegate(Type returns, params Type[] parameterTypes)
         {
             return FindDelegate(new[] { Assembly.GetExecutingAssembly() }, returns, parameterTypes: parameterTypes);
         }
 
-        public static Type FindDelegate(Assembly[] searchAssemblies, Type returns, params Type[] parameterTypes)
+        public static Type? FindDelegate(Assembly[] searchAssemblies, Type returns, params Type[] parameterTypes)
         {
             foreach (var search in searchAssemblies)
             {

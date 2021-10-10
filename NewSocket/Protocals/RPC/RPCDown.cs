@@ -23,7 +23,7 @@ namespace NewSocket.Protocals.RPC
 
         public bool IsResponse { get; private set; }
 
-        public string LocalMethod { get; private set; }
+        public string? LocalMethod { get; private set; }
 
         public List<string> ParameterJson => m_Parameters;
 
@@ -35,9 +35,9 @@ namespace NewSocket.Protocals.RPC
 
         private bool m_Init = true;
         private List<string> m_Parameters = new List<string>();
-        private MarshalAllocMemoryStream m_CurrentObject;
+        private MarshalAllocMemoryStream? m_CurrentObject;
         private int m_ParamPosititon = 0;
-        private byte[] m_Buffer = new byte[1024 * 6];
+        private byte[]? m_Buffer = new byte[1024 * 6];
 
         public RPCDown(ulong messageID, RPCProtocal protocal)
         {
@@ -74,6 +74,10 @@ namespace NewSocket.Protocals.RPC
                 m_ParamPosititon++;
                 var paramLength = await stream.NetReadInt64();
                 m_CurrentObject = new MarshalAllocMemoryStream((int)paramLength);
+            }
+            if (m_Buffer == null)
+            {
+                throw new InvalidOperationException("Buffer was null");
             }
 
             var transferSize = await stream.NetReadInt64();
@@ -125,7 +129,7 @@ namespace NewSocket.Protocals.RPC
         {
             m_CurrentObject?.Dispose();
             m_Buffer = null;
-            m_Parameters = null;
+            m_Parameters.Clear();
         }
     }
 }

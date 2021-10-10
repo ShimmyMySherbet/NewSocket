@@ -27,7 +27,7 @@ namespace NewSocket.Protocals.RPC.Handlers
 
         private bool m_HasReturn;
 
-        private PropertyInfo m_ResultInfo;
+        private PropertyInfo? m_ResultInfo;
 
         private Delegate Handler;
 
@@ -48,7 +48,7 @@ namespace NewSocket.Protocals.RPC.Handlers
             DelegateTools.GetReturnTypeInfo(handler.Method.ReturnType, out m_IsAsync, out m_ReturnType, out m_HasReturn, out m_ResultInfo);
         }
 
-        public async Task<object> Execute(object[] parameters)
+        public async Task<object?> Execute(object?[]? parameters)
         {
             if (m_IsAsync)
             {

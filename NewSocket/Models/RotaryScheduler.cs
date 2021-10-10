@@ -26,7 +26,7 @@ namespace NewSocket.Models
             m_Semaphore.Release();
         }
 
-        private async Task<T> DequeueNext(CancellationToken token)
+        private async Task<T?> DequeueNext(CancellationToken token)
         {
             await m_Semaphore.WaitAsync(token);
             token.ThrowIfCancellationRequested();
@@ -43,7 +43,7 @@ namespace NewSocket.Models
 
             if (m_Index > m_ActiveMessageCount && (m_Queue.Count > 0 || m_ActiveMessageCount == 0))
             {
-                T next = null;
+                T? next = null;
                 while (next == null)
                 {
                     next = await DequeueNext(token);

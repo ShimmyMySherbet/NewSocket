@@ -11,12 +11,12 @@ namespace NewSocket.Protocals.RPC.Models
     {
         public List<string> Objects { get; } = new List<string>();
 
-        public T ReadObject<T>(int index)
+        public T? ReadObject<T>(int index)
         {
             return JsonConvert.DeserializeObject<T>(Objects[index]);
         }
 
-        public object ReadObject(int index, Type type)
+        public object? ReadObject(int index, Type type)
         {
             return JsonConvert.DeserializeObject(Objects[index], type);
         }

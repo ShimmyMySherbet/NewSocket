@@ -7,9 +7,9 @@ namespace NewSocket.Models
     // Wrapper for TaskCompletionSource
     public class AsyncWaitHandle<T>
     {
-        public T Result { get; private set; }
+        public T? Result { get; private set; }
         public bool Complete { get; private set; }
-        public Exception Exception { get; private set; }
+        public Exception? Exception { get; private set; }
 
         /// <summary>
         /// Cancels on completion of task, or on task cancellation.
@@ -28,7 +28,14 @@ namespace NewSocket.Models
                 Complete = true;
                 if (Task.IsFaulted)
                 {
-                    Exception = Task.Exception.GetBaseException();
+                    if (Task.Exception != null)
+                    {
+                        Exception = Task.Exception.GetBaseException();
+
+                    } else
+                    {
+                        Exception = new Exception("An unknown Exception occoured.");
+                    }
                 }
             });
         }
@@ -63,14 +70,14 @@ namespace NewSocket.Models
     public class AsyncWaitHandle
     {
         public bool Complete { get; private set; }
-        public Exception Exception { get; private set; }
+        public Exception? Exception { get; private set; }
 
         /// <summary>
         /// Cancels on completion of task, or on task cancellation.
         /// </summary>
         public CancellationToken Token => m_TokenSource.Token;
 
-        private TaskCompletionSource<object> m_Task = new TaskCompletionSource<object>();
+        private TaskCompletionSource<object?> m_Task = new TaskCompletionSource<object?>();
         private CancellationTokenSource m_TokenSource = new CancellationTokenSource();
 
         public AsyncWaitHandle()
@@ -81,7 +88,15 @@ namespace NewSocket.Models
                 Complete = true;
                 if (Task.IsFaulted)
                 {
-                    Exception = Task.Exception.GetBaseException();
+                    if (Task.Exception != null)
+                    {
+                        Exception = Task.Exception.GetBaseException();
+
+                    }
+                    else
+                    {
+                        Exception = new Exception("An unknown Exception occoured.");
+                    }
                 }
             });
         }

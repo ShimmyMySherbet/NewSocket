@@ -19,7 +19,7 @@ namespace NewSocket.Protocals.OTP
 
         public byte MessageType => 0;
 
-        private Stream m_Read;
+        private Stream? m_Read;
         private long m_BytesRead = -1;
 
         public long MessageSize { get; private set; } = 0;
@@ -62,6 +62,11 @@ namespace NewSocket.Protocals.OTP
             var transferSize = await stream.NetReadInt64();
             var remaining = transferSize;
             //System.Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId} {Client.Name}] [OTP Down] Transfer Size: {transferSize}, Remaining: {BytesRemaining}");
+            if (m_Read == null)
+            {
+                throw new InvalidOperationException();
+            }
+
             while (remaining > 0)
             {
                 var nextRead = remaining < m_Buffer.Length ? remaining : m_Buffer.Length;
@@ -86,6 +91,11 @@ namespace NewSocket.Protocals.OTP
             WantsToDispatch = false;
             ThreadPool.QueueUserWorkItem(async (_) =>
             {
+                if (m_Read == null)
+                {
+                    return;
+                }
+
                 try
                 {
                     await Protocal.RaiseMessage(Channel, m_Read);
@@ -103,7 +113,10 @@ namespace NewSocket.Protocals.OTP
             if (WantsToDispatch)
             {
                 WantsToDispatch = false;
-                m_Read.Dispose();
+                if (m_Read != null)
+                {
+                    m_Read.Dispose();
+                }
             }
         }
     }

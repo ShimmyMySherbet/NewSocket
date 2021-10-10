@@ -17,6 +17,6 @@ namespace NewSocket.Protocals.RPC.Interfaces
 
         public bool HasReturn { get; }
 
-        Task<object> Execute(object[] parameters);
+        Task<object?> Execute(object?[]? parameters);
     }
 }

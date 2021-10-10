@@ -21,7 +21,7 @@ namespace NewSocket.Protocals.RPC.Models.Registry
             return m_Handlers.TryRemove(name, out var _);
         }
 
-        public IRPCHandler GetHandler(string name)
+        public IRPCHandler? GetHandler(string name)
         {
             if (m_Handlers.TryGetValue(name, out var handler))
             {

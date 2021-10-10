@@ -147,9 +147,9 @@ namespace NewSocket
             await stream.WriteAsync(BitConverter.GetBytes(value));
         }
 
-        public static async Task Write(this Stream stream, string value, bool includeHeader = true)
+        public static async Task Write(this Stream stream, string? value, bool includeHeader = true)
         {
-            var upBuffer = Encoding.UTF8.GetBytes(value);
+            var upBuffer = Encoding.UTF8.GetBytes(value ?? "");
             if (includeHeader)
             {
                 await stream.Write((uint)upBuffer.Length);

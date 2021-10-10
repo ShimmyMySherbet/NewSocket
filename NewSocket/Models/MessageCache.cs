@@ -12,12 +12,12 @@ namespace NewSocket.Models
         private ulong m_DownIDIndex = 0;
         private bool m_DownStarted = false;
 
-        public bool TryGetDownload(ulong messageID, out IMessageDown down)
+        public bool TryGetDownload(ulong messageID, out IMessageDown? down)
         {
             return m_Downloads.TryGetValue(messageID, out down);
         }
 
-        public bool TryGetUpload(ulong messageID, out IMessageUp up)
+        public bool TryGetUpload(ulong messageID, out IMessageUp? up)
         {
             return m_Uploads.TryGetValue(messageID, out up);
         }

@@ -6,7 +6,7 @@ namespace NewSocket.Protocals.RPC.Models
 {
     public class DelegateTools
     {
-        public static void GetReturnTypeInfo(Type t, out bool async, out Type underlying, out bool returns, out PropertyInfo taskResultInfo)
+        public static void GetReturnTypeInfo(Type t, out bool async, out Type underlying, out bool returns, out PropertyInfo? taskResultInfo)
         {
             returns = true;
             underlying = t;
@@ -46,7 +46,7 @@ namespace NewSocket.Protocals.RPC.Models
         public static bool GetDelegateInfo(Type delegateType, out Type returnType, out ParameterInfo[] parameters)
         {
             parameters = new ParameterInfo[0];
-            returnType = null;
+            returnType = typeof(void);
             if (!delegateType.IsSubclassOf(typeof(Delegate)))
             {
                 return false;

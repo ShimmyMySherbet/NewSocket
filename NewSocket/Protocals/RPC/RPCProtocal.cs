@@ -15,7 +15,7 @@ namespace NewSocket.Protocals.RPC
 {
     public partial class RPCProtocal : IMessageProtocal
     {
-        public byte ID => 1;
+        public virtual byte ID => 1;
 
         private IDAssigner RPCAssigner = new IDAssigner();
 
@@ -24,6 +24,8 @@ namespace NewSocket.Protocals.RPC
         public IRPCRequestRegistry RequestRegistry = new RPCRequestRegistry();
 
         public IRPCHandlerRegistry HandlerRegistry = new RPCHandlerRegistry();
+
+        protected bool m_Invalid = false;
 
         public RPCProtocal(ISocketClient socketClient)
         {
@@ -53,12 +55,12 @@ namespace NewSocket.Protocals.RPC
         //    return msg;
         //}
 
-        public Task<IMessageDown> CreateDown(ulong messageID, BaseSocketClient client)
+        public virtual Task<IMessageDown> CreateDown(ulong messageID, BaseSocketClient client)
         {
             return Task.FromResult((IMessageDown)new RPCDown(messageID, this));
         }
 
-        public IMessageUp CreateRPCCall(string method, out RPCHandle handle, params object[] parameters)
+        public virtual IMessageUp CreateRPCCall(string method, out RPCHandle handle, params object?[] parameters)
         {
             handle = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), RPCAssigner.AssignID());
             RequestRegistry.RegisterRequest(handle);
@@ -66,21 +68,21 @@ namespace NewSocket.Protocals.RPC
             return msg;
         }
 
-        public IMessageUp CreateRPCResponse(ulong parentRPCID, object response)
+        public virtual IMessageUp CreateRPCResponse(ulong parentRPCID, object? response)
         {
             var context = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), parentRPCID);
             var msg = new RPCUp(SocketClient, context, response);
             return msg;
         }
 
-        public IMessageUp CreateRPCResponse(ulong parentRPCID)
+        public virtual IMessageUp CreateRPCResponse(ulong parentRPCID)
         {
             var context = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), parentRPCID);
             var msg = new RPCUp(SocketClient, context);
             return msg;
         }
 
-        public async Task<T> QueryAsync<T>(string method, params object[] parameters)
+        public async Task<T?> QueryAsync<T>(string method, params object[] parameters)
         {
             var msg = CreateRPCCall(method, out var handle, parameters: parameters);
             SocketClient.Enqueue(msg);
@@ -95,36 +97,26 @@ namespace NewSocket.Protocals.RPC
             throw new InvalidOperationException("Remote RPC didn't return anything");
         }
 
-
-        public void Subscribe(string name, Delegate handler)
+        public virtual void Subscribe(string name, Delegate handler)
         {
             var global = new GlobalDelegateHandler(name, handler);
             HandlerRegistry.Register(name, global);
         }
 
-
-        public void RegisterFrom<T>(T instance) where T : class
+        public virtual void RegisterFrom<T>(T instance) where T : class
         {
             var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
             foreach (var method in methods)
             {
                 foreach (var rpcAttrib in method.GetCustomAttributes<RPCAttribute>())
                 {
-
-
-
                 }
-
-
             }
-
-
-
-
         }
 
-        public void DispatchRPC(ulong RPCID, string method, RPCData parameters)
+        public virtual void DispatchRPC(ulong RPCID, string? method, RPCData parameters)
         {
+            if (method == null) return;
             ThreadPool.QueueUserWorkItem(async (_) => await HandleRPC(RPCID, method, parameters));
         }
 
@@ -133,7 +125,7 @@ namespace NewSocket.Protocals.RPC
             var handler = HandlerRegistry.GetHandler(method);
             if (handler != null)
             {
-                var paramList = new List<object>();
+                var paramList = new List<object?>();
                 if (parameters.Objects.Count >= handler.Parameters.Length)
                 {
                     for (int i = 0; i < handler.Parameters.Length; i++)

@@ -17,8 +17,8 @@ namespace NewSocket.Core
     public class BaseSocketClient : ISocketClient
     {
         public string Name { get; set; } = "Socket"; // for debug logging
-        public Stream UpStream { get; private set; }
-        public Stream DownStream { get; private set; }
+        public Stream? UpStream { get; private set; }
+        public Stream? DownStream { get; private set; }
         public int DownBufferSize { get; set; } = 1024 * 2;
         public int UpBufferSize { get; set; } = 1024 * 2;
         public int UpTransferSize { get; set; } = 1024 * 20;
@@ -31,11 +31,11 @@ namespace NewSocket.Core
 
         protected IScheduler<IMessageUp> m_MessageScheduler = new RotaryScheduler<IMessageUp>();
 
-        protected CancellationTokenSource m_TokenSource;
+        protected CancellationTokenSource? m_TokenSource;
 
         protected bool AllowPartialSocket { get; set; } = false;
 
-        public T GetProtocal<T>() where T : class, IMessageProtocal
+        public T? GetProtocal<T>() where T : class, IMessageProtocal
         {
             var vals = m_Protocals.Values.OfType<T>();
             if (vals.Any())
@@ -182,13 +182,13 @@ namespace NewSocket.Core
                     var newMessage = m_Cache.IsNewMessage(messageID);
                     //Cout.Write($"{Name} down", $"Is New Message: {newMessage}");
 
-                    IMessageDown down;
+                    IMessageDown? down;
                     if (newMessage)
                     {
                         down = await m_Protocals[messageType].CreateDown(messageID, this);
                         m_Cache.Register(down);
                     }
-                    else if (!m_Cache.TryGetDownload(messageID, out down))
+                    else if (!m_Cache.TryGetDownload(messageID, out down) || down == null)
                     {
                         //Cout.Write($"{Name} down", $"Failed to get message");
                         throw new Exception("Message ID was known, but couldn't be retrived.");
