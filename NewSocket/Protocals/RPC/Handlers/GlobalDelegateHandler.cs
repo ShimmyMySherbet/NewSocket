@@ -1,4 +1,5 @@
 ﻿using NewSocket.Protocals.RPC.Interfaces;
+using NewSocket.Protocals.RPC.Models;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -44,7 +45,7 @@ namespace NewSocket.Protocals.RPC.Handlers
                 Parameters = new Type[0];
             }
 
-            m_IsAsync = IsTask(handler.Method.ReturnType, out m_ReturnType, out m_HasReturn);
+            DelegateTools.GetReturnTypeInfo(handler.Method.ReturnType, out m_IsAsync, out m_ReturnType, out m_HasReturn, out m_ResultInfo);
         }
 
         public async Task<object> Execute(object[] parameters)
@@ -70,38 +71,6 @@ namespace NewSocket.Protocals.RPC.Handlers
             {
                 return Handler.DynamicInvoke(parameters);
             }
-        }
-
-        private bool IsTask(Type t, out Type underlying, out bool returns)
-        {
-            returns = true;
-            underlying = t;
-            if (t == typeof(Task))
-            {
-                returns = false;
-                return true;
-            }
-
-            if (t == typeof(void))
-            {
-                returns = false;
-                return false;
-            }
-
-            var generics = t.GenericTypeArguments;
-            if (generics.Length == 1)
-            {
-                var generic = generics[0];
-                var gtask = typeof(Task<>).MakeGenericType(generic);
-                m_ResultInfo = gtask.GetProperty("Result", BindingFlags.Instance | BindingFlags.Public);
-                if (gtask == t)
-                {
-                    underlying = generic;
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }

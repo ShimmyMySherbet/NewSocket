@@ -1,22 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using NewSocket.Models;
+using NewSocket.Protocals.RPC;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NewSocket.Core
 {
     public class SocketClient : BaseSocketClient
     {
-        public SocketClient(Stream network) : base(network)
+        public EClientRole Role { get; }
+        public bool RPCEnabled { get; }
+        public RPCProtocal RPC { get; }
+        public SocketClient(Stream network, SocketClientConfig config) : base(network)
         {
+            DownBufferSize = config.DownBufferSize;
+            UpBufferSize = config.UpBufferSize;
+            UpTransferSize = config.UpTransferSize;
+            RPCEnabled = config.RPCEnabled;
+            Role = config.Role;
+            AllowPartialSocket = config.PartialSocket;
+
+            if (config.MessageScheduler != null)
+            {
+                m_MessageScheduler = config.MessageScheduler;
+            }
+
+            foreach (var protocal in config.Protocals)
+            {
+                m_Protocals[protocal.ID] = protocal;
+            }
+
+            if (RPCEnabled)
+            {
+                RPC = RegisterProtocal(new RPCProtocal(this));
+            }
         }
-
-
-
-
-
-
     }
 }

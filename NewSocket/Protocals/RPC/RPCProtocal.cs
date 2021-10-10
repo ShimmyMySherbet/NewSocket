@@ -7,6 +7,7 @@ using NewSocket.Protocals.RPC.Models;
 using NewSocket.Protocals.RPC.Models.Registry;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -102,7 +103,25 @@ namespace NewSocket.Protocals.RPC
         }
 
 
+        public void RegisterFrom<T>(T instance) where T : class
+        {
+            var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            foreach (var method in methods)
+            {
+                foreach (var rpcAttrib in method.GetCustomAttributes<RPCAttribute>())
+                {
 
+
+
+                }
+
+
+            }
+
+
+
+
+        }
 
         public void DispatchRPC(ulong RPCID, string method, RPCData parameters)
         {

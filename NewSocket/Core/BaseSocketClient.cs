@@ -1,11 +1,11 @@
 ﻿using NewSocket.Interfaces;
 using NewSocket.Models;
+using NewSocket.Models.Exceptions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,20 +17,23 @@ namespace NewSocket.Core
     public class BaseSocketClient : ISocketClient
     {
         public string Name { get; set; } = "Socket"; // for debug logging
-        public Stream Network { get; private set; }
+        public Stream UpStream { get; private set; }
+        public Stream DownStream { get; private set; }
         public int DownBufferSize { get; set; } = 1024 * 2;
         public int UpBufferSize { get; set; } = 1024 * 2;
         public int UpTransferSize { get; set; } = 1024 * 20;
 
-        private IDictionary<byte, IMessageProtocal> m_Protocals = new ConcurrentDictionary<byte, IMessageProtocal>();
+        protected IDictionary<byte, IMessageProtocal> m_Protocals = new ConcurrentDictionary<byte, IMessageProtocal>();
 
-        private MessageCache m_Cache = new MessageCache();
+        protected MessageCache m_Cache = new MessageCache();
 
         public IDAssigner MessageIDAssigner { get; } = new IDAssigner();
 
-        private IScheduler<IMessageUp> m_MessageScheduler = new RotaryScheduler<IMessageUp>();
+        protected IScheduler<IMessageUp> m_MessageScheduler = new RotaryScheduler<IMessageUp>();
 
-        private CancellationTokenSource m_TokenSource;
+        protected CancellationTokenSource m_TokenSource;
+
+        protected bool AllowPartialSocket { get; set; } = false;
 
         public T GetProtocal<T>() where T : class, IMessageProtocal
         {
@@ -48,6 +51,23 @@ namespace NewSocket.Core
             return instance;
         }
 
+        public void SetStream(ESocketStream direction, Stream stream)
+        {
+            if (direction == ESocketStream.Both)
+            {
+                UpStream = stream;
+                DownStream = stream;
+            }
+            else if (direction == ESocketStream.Down)
+            {
+                DownStream = stream;
+            }
+            else if (direction == ESocketStream.Up)
+            {
+                UpStream = stream;
+            }
+        }
+
         public void Start()
         {
             if (m_TokenSource != null)
@@ -55,8 +75,30 @@ namespace NewSocket.Core
                 m_TokenSource.Cancel();
             }
             m_TokenSource = new CancellationTokenSource();
-            Task.Run(() => MessageUpload(Network, m_TokenSource.Token), m_TokenSource.Token);
-            Task.Run(() => MessageDownload(Network, m_TokenSource.Token), m_TokenSource.Token);
+
+            if (UpStream == null && DownStream == null)
+            {
+                throw new MissingStreamException(ESocketStream.Both);
+            }
+            else if (!AllowPartialSocket)
+            {
+                if (UpStream == null)
+                {
+                    throw new MissingStreamException(ESocketStream.Up);
+                }
+                if (DownStream == null)
+                {
+                    throw new MissingStreamException(ESocketStream.Down);
+                }
+            }
+            if (UpStream != null)
+            {
+                Task.Run(() => MessageUpload(UpStream, m_TokenSource.Token), m_TokenSource.Token);
+            }
+            if (DownStream != null)
+            {
+                Task.Run(() => MessageDownload(DownStream, m_TokenSource.Token), m_TokenSource.Token);
+            }
         }
 
         public void Stop()
@@ -69,7 +111,18 @@ namespace NewSocket.Core
 
         public BaseSocketClient(Stream network)
         {
-            Network = network;
+            UpStream = network;
+            DownStream = network;
+        }
+
+        public BaseSocketClient(Stream up, Stream down)
+        {
+            UpStream = up;
+            DownStream = down;
+        }
+
+        public BaseSocketClient()
+        {
         }
 
         public void Enqueue(IMessageUp message)
@@ -78,7 +131,7 @@ namespace NewSocket.Core
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private async Task MessageUpload(Stream network, CancellationToken token)
+        protected async Task MessageUpload(Stream network, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -111,7 +164,7 @@ namespace NewSocket.Core
          */
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private async Task MessageDownload(Stream network, CancellationToken token)
+        protected async Task MessageDownload(Stream network, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {

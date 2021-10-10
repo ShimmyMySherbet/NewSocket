@@ -10,5 +10,6 @@ namespace NewSocket.Interfaces
         IDAssigner MessageIDAssigner { get; }
 
         void Enqueue(IMessageUp message);
+
     }
 }

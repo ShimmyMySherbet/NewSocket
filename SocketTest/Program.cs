@@ -1,4 +1,6 @@
-﻿using System;
+﻿using NewSocket.Protocals.RPC;
+using NewSocket.Protocals.RPC.Models;
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -11,8 +13,45 @@ namespace SocketTest
     {
         public static Stopwatch Stopwatch = new Stopwatch();
 
+        public class MTRS
+        {
+
+            string str;
+
+            public MTRS(string s)
+            {
+                str = s;
+            }
+
+            public override string ToString()
+            {
+                return str;
+            }
+
+        }
+
+        public static async Task<MTRS> Trigger(string in1, int var2, MTRS bse)
+        {
+            await Task.Delay(3000);
+            return new MTRS($"SHITASS {in1}x{var2} + {bse}");
+        }
+
         private static void Main(string[] args)
         {
+            var info = typeof(Program).GetMethod("Trigger");
+
+            var del = DelegateFactory.CreateDelegate(info, null);
+
+            Console.WriteLine($"HD: {del != null}");
+            if (del != null)
+            {
+                var res = del.EvaluateBlocking("fucker", 10, new MTRS("GAYGAY"));
+                if (res != null)
+                {
+                    Console.WriteLine($"Returned: [{res.GetType().Name}] Str: {res}");
+                }
+            }
+            return;
             Console.WriteLine($"[b] both, [s] server, [c] client");
             var mode = Console.ReadKey();
 

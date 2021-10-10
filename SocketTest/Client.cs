@@ -26,8 +26,17 @@ namespace SocketTest
 
             var h = new FuncRPCHandlerArgs<int, int, int>(Multiply);
             rpc.Subscribe("Multiply", h);
-
             Server.Start();
+
+
+        }
+
+
+        public async Task<string> GetSTr(int r)
+        {
+
+            return "";
+
         }
 
 
