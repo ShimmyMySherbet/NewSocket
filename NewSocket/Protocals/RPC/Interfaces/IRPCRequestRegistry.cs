@@ -1,4 +1,5 @@
-﻿using NewSocket.Protocals.RPC.Models;
+﻿using NewSocket.Models;
+using NewSocket.Protocals.RPC.Models;
 
 namespace NewSocket.Protocals.RPC.Interfaces
 {
@@ -7,5 +8,7 @@ namespace NewSocket.Protocals.RPC.Interfaces
         void RegisterRequest(RPCHandle handle);
 
         void ReleaseRequest(ulong RPCID, RPCData data);
+
+        void SendShutdown(DisconnectContext context);
     }
 }

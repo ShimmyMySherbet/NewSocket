@@ -141,13 +141,38 @@ namespace NewSocket.Protocals.RPC
             ThreadPool.QueueUserWorkItem(async (_) => await HandleRPC(RPCID, method, arguments));
         }
 
+        /// <summary>
+        /// Creates a delegate handle for the remote RPC, using the method name attributed to the delegate type.
+        /// Uses <see cref="RPCAttribute"/> from the delegate type.
+        /// </summary>
+        /// <typeparam name="T">Delegate type tagged with <see cref="RPCAttribute"/></typeparam>
+        /// <returns>RPC delegate handle</returns>
+        public T GetRPC<T>() where T : Delegate
+        {
+            var attr = typeof(T).GetCustomAttribute<RPCAttribute>();
+            if (attr == null || attr.MethodName == null)
+            {
+                throw new ArgumentException("Delegate is not tagged with remote RPC name. Use GetRPC<T>(string method) to specify remote RPC name.");
+            }
+            else
+            {
+                return GetRPC<T>(attr.MethodName);
+            }
+        }
+
+        /// <summary>
+        /// Creates a delegate handle for the remote RPC, using the specified remote RPC name.
+        /// </summary>
+        /// <typeparam name="T">Delegate type</typeparam>
+        /// <param name="method">Name of the rmeote RPC method</param>
+        /// <returns>RPC delegate handle</returns>
         public T GetRPC<T>(string method) where T : Delegate
         {
             if (DelegateTools.GetDelegateInfo(typeof(T), out var ReturnType, out var delegateParameters))
             {
                 DelegateTools.GetReturnTypeInfo(ReturnType, out var delegateIsAsync, out var delegateReturnType, out bool delegateReturns, out _);
 
-                Console.WriteLine($"Search Matching: {(delegateIsAsync ? "async" : "")} {ReturnType.Name}({string.Join(", ", delegateParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
+                //Console.WriteLine($"Search Matching: {(delegateIsAsync ? "async" : "")} {ReturnType.Name}({string.Join(", ", delegateParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
 
                 foreach (var proxyClass in Assembly.GetExecutingAssembly().GetTypes().Where(x => typeof(RPCProxy).IsAssignableFrom(x)))
                 {
@@ -157,7 +182,7 @@ namespace NewSocket.Protocals.RPC
 
                     var proxyParameters = proxyMethod.GetParameters();
                     var proxyGenerics = proxyClass.GetGenericArguments();
-                    Console.WriteLine($"Test: {(proxyIsAsync ? "async" : "")} {proxyMethod.ReturnType.Name}({string.Join(", ", proxyParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
+                    //Console.WriteLine($"Test: {(proxyIsAsync ? "async" : "")} {proxyMethod.ReturnType.Name}({string.Join(", ", proxyParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
 
                     if (proxyParameters.Length == delegateParameters.Length)
                     {
@@ -178,12 +203,12 @@ namespace NewSocket.Protocals.RPC
                         {
                             buildGenerics[proxyReturnType.GenericParameterPosition] = delegateReturnType;
                             compatible = true;
-                        } else
+                        }
+                        else
                         {
                             // bad return
                             compatible = false;
                         }
-
 
                         if (compatible)
                         {
@@ -191,7 +216,6 @@ namespace NewSocket.Protocals.RPC
                             {
                                 var proxyParam = proxyParameters[i];
                                 var delegateParam = delegateParameters[i];
-
 
                                 if (proxyParam.ParameterType.IsGenericParameter)
                                 {
@@ -329,6 +353,12 @@ namespace NewSocket.Protocals.RPC
             }
             var msg = CreateRPCResponse(id);
             SocketClient.Enqueue(msg);
+        }
+
+        public Task OnSocketDisconnect(DisconnectContext context)
+        {
+            RequestRegistry.SendShutdown(context);
+            return Task.CompletedTask;
         }
     }
 }

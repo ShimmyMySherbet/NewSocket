@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace NewSocket.Protocals.RPC
 {
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true), DisplayName("RPC")]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Delegate, AllowMultiple = true), DisplayName("RPC")]
     public class RPCAttribute : Attribute
     {
         public string? MethodName { get; }

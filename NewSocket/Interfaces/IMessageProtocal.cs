@@ -1,4 +1,5 @@
 ﻿using NewSocket.Core;
+using NewSocket.Models;
 using System.Threading.Tasks;
 
 namespace NewSocket.Interfaces
@@ -9,5 +10,6 @@ namespace NewSocket.Interfaces
 
         Task<IMessageDown> CreateDown(ulong messageID, BaseSocketClient client);
 
+        Task OnSocketDisconnect(DisconnectContext context);
     }
 }

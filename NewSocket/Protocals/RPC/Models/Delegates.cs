@@ -1,7 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using NewSocket.Core;
+using NewSocket.Models;
+using System.Threading.Tasks;
 
 namespace NewSocket.Protocals.RPC.Models.Delegates
 {
+    public delegate void SocketDisconnectedArgs(DisconnectContext context);
+
     public delegate Task AsyncRPCHandlerArgs();
 
     public delegate Task AsyncRPCHandlerArgs<A1>(A1 argument1);

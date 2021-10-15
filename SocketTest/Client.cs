@@ -8,22 +8,23 @@ using System.Threading.Tasks;
 
 namespace SocketTest
 {
-    public delegate Task<string> ResponseDelegate(string a, string b, string c, CancellationToken token);
+    [RPC("Login")]
+    public delegate Task<bool> LoginRPC(string username, string password);
 
-    public delegate Task<string> ResponseDelegate2(string a1);
+    [RPC("GetName")]
+    public delegate Task<string> GetNameRPC();
 
-    public delegate Task<string> ResponseDelegate3(string a1, AuthValues d);
-
-    public delegate Task ResponseDelegate4(string a1, AuthValues d, int dd);
-
-    public delegate AuthValues ResponseDelegate5(string a1, string a2, string a3);
-
+    [RPC("GetTime")]
+    public delegate Task<DateTime> GetTimeRPC();
     public class Client
     {
         public NewSocketClient Server;
         public RPCProtocal RPC;
         public AsyncWaitHandle AuthWait = new AsyncWaitHandle();
 
+        public LoginRPC Login;
+        public GetNameRPC GetName;
+        public GetTimeRPC GetTime;
         public Client(Stream stream)
         {
             Server = new NewSocketClient(stream, new SocketClientConfig() { RPCEnabled = true, Role = EClientRole.Client });
@@ -37,6 +38,12 @@ namespace SocketTest
 
             RPC.RegisterFrom(this);
 
+            Login = RPC.GetRPC<LoginRPC>();
+
+            Login = RPC.GetRPC<LoginRPC>("Login");
+
+            GetName = RPC.GetRPC<GetNameRPC>();
+            GetTime = RPC.GetRPC<GetTimeRPC>();
             Server.Start();
 
             ThreadPool.QueueUserWorkItem(async (_) =>
@@ -44,9 +51,21 @@ namespace SocketTest
                 await Run();
             });
         }
-
         public async Task Run()
         {
+            Console.WriteLine("Logging in...");
+            var pass = await Login("Username", "Password");
+            if (pass)
+            {
+                Console.WriteLine("Logged in!");
+            }
+
+            Console.WriteLine($"Remote Name: {await GetName()}");
+            Console.WriteLine($"Remote Name: {(await GetTime()).ToShortTimeString()}");
+
+            Console.WriteLine("Disconnecting...");
+            Server.Disconnect();
+            Console.WriteLine("Disconnected.");
         }
 
         [RPC]

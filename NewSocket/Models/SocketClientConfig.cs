@@ -17,9 +17,10 @@ namespace NewSocket.Models
 
         public IScheduler<IMessageUp>? MessageScheduler { get; } = null;
 
-        public SocketClientConfig(EClientRole role = EClientRole.Any)
+        public SocketClientConfig(EClientRole role = EClientRole.Any, bool rpcEnabled = false)
         {
             Role = role;
+            RPCEnabled = RPCEnabled;
         }
     }
 }

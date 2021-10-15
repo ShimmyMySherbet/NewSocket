@@ -1,4 +1,5 @@
-﻿using NewSocket.Protocals.RPC.Interfaces;
+﻿using NewSocket.Models;
+using NewSocket.Protocals.RPC.Interfaces;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,6 +24,11 @@ namespace NewSocket.Protocals.RPC.Models.Registry
             {
                 handle.Release(data);
             }
+        }
+
+        public void SendShutdown(DisconnectContext context)
+        {
+
         }
     }
 }

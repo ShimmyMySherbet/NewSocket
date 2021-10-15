@@ -1,5 +1,6 @@
 ﻿using NewSocket.Core;
 using NewSocket.Interfaces;
+using NewSocket.Models;
 using NewSocket.Protocals.RPC;
 using System.IO;
 using System.Threading;
@@ -27,6 +28,11 @@ namespace NewSocket.Protocals.OTP
         public IMessageUp CreateUp(ulong messageID, BaseSocketClient client, string channel, Stream stream)
         {
             return new ObjectTransferUp(messageID, client, channel, stream);
+        }
+
+        public Task OnSocketDisconnect(DisconnectContext context)
+        {
+            return Task.CompletedTask;
         }
 
         internal Task RaiseMessage(string channel, Stream stream)

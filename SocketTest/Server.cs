@@ -33,7 +33,18 @@ namespace SocketTest
             }
             RPC = Client.RPC;
             Client.RPC.RegisterFrom(this);
+
+            Client.onDisconnect += onClientDisconnect;
+
             Client.Start();
+
+            Client.onDisconnect += onClientDisconnect;
+
+        }
+
+        private void onClientDisconnect(NewSocket.Models.DisconnectContext context)
+        {
+            Console.WriteLine($"Client Disconnected. Expected: {!context.Unexpected}, Faulted: {context.IsFaulted}");
         }
 
         [RPC]
@@ -44,11 +55,14 @@ namespace SocketTest
 
 
         [RPC]
-        public async Task<bool> Login(AuthValues values)
+        public async Task<bool> Login(string username, string password)
         {
-            await RPC.InvokeAsync("RunSetup");
-            return true;
+            // best security ever
+            await Task.Delay(100);
+            return !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password);
         }
+
+
 
         [RPC]
         public string GetName()
