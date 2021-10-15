@@ -7,6 +7,8 @@ using NewSocket.Protocals.RPC.Models;
 using NewSocket.Protocals.RPC.Models.Registry;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,9 +62,9 @@ namespace NewSocket.Protocals.RPC
             return Task.FromResult((IMessageDown)new RPCDown(messageID, this));
         }
 
-        public virtual IMessageUp CreateRPCCall(string method, out RPCHandle handle, params object?[] parameters)
+        public virtual IMessageUp CreateRPCCall(string method, out RPCHandle handle, params object?[]? parameters)
         {
-            handle = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), RPCAssigner.AssignID());
+            handle = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), RPCAssigner.AssignID(), method);
             RequestRegistry.RegisterRequest(handle);
             var msg = new RPCUp(SocketClient, handle, method, parameters);
             return msg;
@@ -70,14 +72,14 @@ namespace NewSocket.Protocals.RPC
 
         public virtual IMessageUp CreateRPCResponse(ulong parentRPCID, object? response)
         {
-            var context = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), parentRPCID);
+            var context = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), parentRPCID, $"R:{parentRPCID}");
             var msg = new RPCUp(SocketClient, context, response);
             return msg;
         }
 
         public virtual IMessageUp CreateRPCResponse(ulong parentRPCID)
         {
-            var context = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), parentRPCID);
+            var context = new RPCHandle(SocketClient.MessageIDAssigner.AssignID(), parentRPCID, $"R:{parentRPCID}");
             var msg = new RPCUp(SocketClient, context);
             return msg;
         }
@@ -87,7 +89,7 @@ namespace NewSocket.Protocals.RPC
             var msg = CreateRPCCall(method, out var handle, parameters: parameters);
             SocketClient.Enqueue(msg);
 
-            var resp = await handle.Handle.WaitAsync();
+            var resp = await handle.WaitAsync();
 
             if (resp.Objects.Count > 0)
             {
@@ -95,6 +97,13 @@ namespace NewSocket.Protocals.RPC
             }
 
             throw new InvalidOperationException("Remote RPC didn't return anything");
+        }
+
+        public async Task InvokeAsync(string method, params object?[]? parameters)
+        {
+            var msg = CreateRPCCall(method, out var handle, parameters: parameters);
+            SocketClient.Enqueue(msg);
+            await handle.WaitAsync();
         }
 
         public virtual void Subscribe(string name, Delegate handler)
@@ -108,47 +117,215 @@ namespace NewSocket.Protocals.RPC
             var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
             foreach (var method in methods)
             {
-                foreach (var rpcAttrib in method.GetCustomAttributes<RPCAttribute>())
+                if (method == null) continue;
+                var del = DelegateFactory.CreateDelegate(method, instance);
+                if (del != null)
                 {
+                    foreach (var rpcAttrib in method.GetCustomAttributes<RPCAttribute>())
+                    {
+                        var name = rpcAttrib.MethodName ?? method.Name;
+                        var handler = new GlobalDelegateHandler(name, del);
+                        HandlerRegistry.Register(name, handler);
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine($"[WARN] Failed to generate delegate handler for RPC {method.DeclaringType?.FullName}::{method.Name}");
                 }
             }
         }
 
-        public virtual void DispatchRPC(ulong RPCID, string? method, RPCData parameters)
+        public virtual void DispatchRPC(ulong RPCID, string? method, string[] arguments)
         {
             if (method == null) return;
-            ThreadPool.QueueUserWorkItem(async (_) => await HandleRPC(RPCID, method, parameters));
+            ThreadPool.QueueUserWorkItem(async (_) => await HandleRPC(RPCID, method, arguments));
         }
 
-        private async Task HandleRPC(ulong id, string method, RPCData parameters)
+        public T GetRPC<T>(string method) where T : Delegate
+        {
+            if (DelegateTools.GetDelegateInfo(typeof(T), out var ReturnType, out var delegateParameters))
+            {
+                DelegateTools.GetReturnTypeInfo(ReturnType, out var delegateIsAsync, out var delegateReturnType, out bool delegateReturns, out _);
+
+                Console.WriteLine($"Search Matching: {(delegateIsAsync ? "async" : "")} {ReturnType.Name}({string.Join(", ", delegateParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
+
+                foreach (var proxyClass in Assembly.GetExecutingAssembly().GetTypes().Where(x => typeof(RPCProxy).IsAssignableFrom(x)))
+                {
+                    var proxyMethod = proxyClass.GetMethod("Execute", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (proxyMethod == null) continue;
+                    DelegateTools.GetReturnTypeInfo(proxyMethod.ReturnType, out var proxyIsAsync, out var proxyReturnType, out var proxyReturns, out _);
+
+                    var proxyParameters = proxyMethod.GetParameters();
+                    var proxyGenerics = proxyClass.GetGenericArguments();
+                    Console.WriteLine($"Test: {(proxyIsAsync ? "async" : "")} {proxyMethod.ReturnType.Name}({string.Join(", ", proxyParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
+
+                    if (proxyParameters.Length == delegateParameters.Length)
+                    {
+                        if (delegateIsAsync != proxyIsAsync)
+                            continue;
+                        if (delegateReturns != proxyReturns)
+                            continue;
+
+                        var buildGenerics = new Type[proxyGenerics.Length];
+
+                        var compatible = false;
+
+                        if (proxyReturnType == delegateReturnType)
+                        {
+                            compatible = true;
+                        }
+                        else if (proxyReturnType.IsGenericParameter)
+                        {
+                            buildGenerics[proxyReturnType.GenericParameterPosition] = delegateReturnType;
+                            compatible = true;
+                        } else
+                        {
+                            // bad return
+                            compatible = false;
+                        }
+
+
+                        if (compatible)
+                        {
+                            for (int i = 0; i < delegateParameters.Length; i++)
+                            {
+                                var proxyParam = proxyParameters[i];
+                                var delegateParam = delegateParameters[i];
+
+
+                                if (proxyParam.ParameterType.IsGenericParameter)
+                                {
+                                    var existing = buildGenerics[proxyParam.ParameterType.GenericParameterPosition];
+
+                                    if (existing == null)
+                                    {
+                                        buildGenerics[proxyParam.ParameterType.GenericParameterPosition] = delegateParam.ParameterType;
+                                    }
+                                    else if (existing != delegateParam.ParameterType)
+                                    {
+                                        // generic is consumed and of a different typpe
+                                        compatible = false;
+                                        break;
+                                    }
+                                }
+                                else if (proxyParam.ParameterType != delegateParam.ParameterType)
+                                {
+                                    // incompatible non-generic type
+                                    compatible = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (compatible)
+                        {
+                            for (int i = 0; i < buildGenerics.Length; i++)
+                            {
+                                if (buildGenerics[i] == null)
+                                {
+                                    // incomplete generic set.
+                                    compatible = false;
+                                }
+                            }
+
+                            if (!compatible)
+                                continue;
+
+                            Type proxyClassBuildType;
+                            if (buildGenerics.Length > 0)
+                            {
+                                proxyClassBuildType = proxyClass.MakeGenericType(typeArguments: buildGenerics);
+                            }
+                            else if (!proxyClass.ContainsGenericParameters)
+                            {
+                                proxyClassBuildType = proxyClass;
+                            }
+                            else
+                            {
+                                // Class has generic parameters that are not accounted for.
+                                compatible = false;
+                                continue;
+                            }
+
+                            var activationArguments = new object[] { this, method, typeof(T) };
+                            RPCProxy? proxyInstance;
+
+                            try
+                            {
+                                proxyInstance = (RPCProxy?)Activator.CreateInstance(proxyClassBuildType, args: activationArguments);
+                                if (proxyInstance == null)
+                                    throw new InvalidOperationException();
+                            }
+                            catch (Exception) // catch class activation exceptions
+                            {
+                                compatible = false;
+                                continue;
+                            }
+
+                            try
+                            {
+                                var delegateBinding = Delegate.CreateDelegate(typeof(T), proxyInstance, "Execute", true, true);
+
+                                if (delegateBinding == null)
+                                    throw new InvalidOperationException();
+
+                                return (T)delegateBinding;
+                            }
+                            catch (Exception) // catch delegate binding and casting exceptions
+                            {
+                                compatible = false;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                throw new InvalidCastException("T has to be a valid delegate");
+            }
+            throw new ArgumentException("Failed to bind proxy delegate for specified delegate type");
+        }
+
+        private async Task HandleRPC(ulong id, string method, string[] args)
         {
             var handler = HandlerRegistry.GetHandler(method);
             if (handler != null)
             {
                 var paramList = new List<object?>();
-                if (parameters.Objects.Count >= handler.Parameters.Length)
+                if (args.Length >= handler.Parameters.Length)
                 {
+                    var parameters = new RPCData(args.ToList());
                     for (int i = 0; i < handler.Parameters.Length; i++)
                     {
                         var pType = handler.Parameters[i];
                         paramList.Add(parameters.ReadObject(i, pType));
                     }
+
                     try
                     {
-                        var returnValue = await handler.Execute(paramList.ToArray());
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        var task = handler.Execute(paramList.ToArray());
+
+                        var returnValue = await task;
 
                         if (handler.HasReturn)
                         {
                             var outBound = CreateRPCResponse(id, returnValue);
                             SocketClient.Enqueue(outBound);
                         }
-                        return;
                     }
-                    catch (System.Exception)
+                    catch (System.Exception ex)
                     {
+                        throw;
                         // TODO: Exception proxy logic
                     }
                 }
+            }
+            else
+            {
+                Cout.Write("RPC", $"Failed to find handler for {method}. ID: {id}");
             }
             var msg = CreateRPCResponse(id);
             SocketClient.Enqueue(msg);

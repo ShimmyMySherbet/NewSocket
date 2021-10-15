@@ -1,19 +1,26 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
 namespace NewSocket
 {
+    /// <summary>
+    /// Debug class for thread color coded messages
+    /// can be toggled on or off
+    ///
+    /// Won't be in final release
+    /// </summary>
     public class Cout
     {
+        public const bool EnableLogging = false;
+
         public static List<ConsoleColor> Colors = new[]
         {
-            ConsoleColor.Red,
             ConsoleColor.Green,
             ConsoleColor.Yellow,
-            ConsoleColor.White,
             ConsoleColor.Cyan,
             ConsoleColor.Blue,
             ConsoleColor.Magenta,
@@ -26,13 +33,14 @@ namespace NewSocket
 
         public static void Write(string source, string message)
         {
-            return;
+            if (!EnableLogging) return;
             lock (LK)
             {
                 var pre = Console.ForegroundColor;
                 Console.ForegroundColor = GetThreadColor(source);
                 Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] [{source}] {message}");
                 Console.ForegroundColor = pre;
+                Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] [{source}] {message}");
             }
         }
 

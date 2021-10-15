@@ -21,7 +21,7 @@ namespace NewSocket.Protocals.RPC.Models.Registry
         {
             if (m_RequestHandles.Remove(RPCID, out var handle))
             {
-                handle.Handle.Release(data);
+                handle.Release(data);
             }
         }
     }

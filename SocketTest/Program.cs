@@ -1,6 +1,4 @@
-﻿using NewSocket.Protocals.RPC;
-using NewSocket.Protocals.RPC.Models;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -15,8 +13,7 @@ namespace SocketTest
 
         public class MTRS
         {
-
-            string str;
+            private string str;
 
             public MTRS(string s)
             {
@@ -27,7 +24,6 @@ namespace SocketTest
             {
                 return str;
             }
-
         }
 
         public static async Task<MTRS> Trigger(string in1, int var2, MTRS bse)

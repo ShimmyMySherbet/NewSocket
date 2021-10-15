@@ -64,7 +64,7 @@ namespace NewSocket.Protocals.RPC.Models
                             return del;
                         }
 
-                        Console.WriteLine($"Del:[{del.Namespace}] {retType.Name} {del.Name}{(gens.Length != 0 ? $"<{string.Join(", ", gens.Select(x => x.Name))}>" : "")}({string.Join(", ", delParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
+                        //Console.WriteLine($"Del:[{del.Namespace}] {retType.Name} {del.Name}{(gens.Length != 0 ? $"<{string.Join(", ", gens.Select(x => x.Name))}>" : "")}({string.Join(", ", delParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
 
                         var buildParamList = new Type[gens.Length];
                         if (retType.IsGenericParameter)

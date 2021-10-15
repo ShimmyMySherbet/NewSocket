@@ -115,12 +115,11 @@ namespace NewSocket.Protocals.RPC
         {
             if (IsResponse)
             {
-                var response = new RPCData(ParameterJson);
-                Protocal.RequestRegistry.ReleaseRequest(RPCID, response);
+                Protocal.RequestRegistry.ReleaseRequest(RPCID, new RPCData(ParameterJson));
             }
             else
             {
-                Protocal.DispatchRPC(RPCID, LocalMethod, new RPCData(ParameterJson));
+                Protocal.DispatchRPC(RPCID, LocalMethod, ParameterJson.ToArray());
             }
             return Task.CompletedTask;
         }

@@ -13,11 +13,23 @@ namespace NewSocket.Protocals.RPC.Models
         public ulong RPCID { get; }
         public AsyncWaitHandle<RPCData> Handle { get; }
 
-        public RPCHandle(ulong messageID, ulong rpcID)
+        public string RPCName { get; }
+
+        public RPCHandle(ulong messageID, ulong rpcID, string name)
         {
             MessageID = messageID;
             RPCID = rpcID;
             Handle = new AsyncWaitHandle<RPCData>();
+            RPCName = name;
+        }
+        public void Release(RPCData data)
+        {
+            Handle.Release(data);
+        }
+
+        public async Task<RPCData> WaitAsync()
+        {
+            return await Handle.WaitAsync();
         }
     }
 }

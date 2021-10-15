@@ -34,11 +34,7 @@ namespace NewSocket.Protocals.RPC
             throw new InvalidOperationException("This socket doesn't support the RPC protocal.");
         }
 
-        public override void DispatchRPC(ulong RPCID, string? method, RPCData parameters)
-        {
-            throw new InvalidOperationException("This socket doesn't support the RPC protocal.");
-        }
-
+ 
         public override void RegisterFrom<T>(T instance)
         {
             throw new InvalidOperationException("This socket doesn't support the RPC protocal.");

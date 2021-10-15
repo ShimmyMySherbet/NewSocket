@@ -1,61 +1,60 @@
 ﻿using NewSocket.Core;
 using NewSocket.Models;
-using NewSocket.Protocals.OTP;
 using NewSocket.Protocals.RPC;
-using NewSocket.Protocals.RPC.Models.Delegates;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SocketTest
 {
-    public delegate Task<string> ResponseDelegate();
+    public delegate Task<string> ResponseDelegate(string a, string b, string c, CancellationToken token);
+
+    public delegate Task<string> ResponseDelegate2(string a1);
+
+    public delegate Task<string> ResponseDelegate3(string a1, AuthValues d);
+
+    public delegate Task ResponseDelegate4(string a1, AuthValues d, int dd);
+
+    public delegate AuthValues ResponseDelegate5(string a1, string a2, string a3);
 
     public class Client
     {
-        public BaseSocketClient Server;
+        public NewSocketClient Server;
+        public RPCProtocal RPC;
+        public AsyncWaitHandle AuthWait = new AsyncWaitHandle();
 
         public Client(Stream stream)
         {
-            Server = new BaseSocketClient(stream);
+            Server = new NewSocketClient(stream, new SocketClientConfig() { RPCEnabled = true, Role = EClientRole.Client });
             Server.Name = "Client";
-            Server.RegisterProtocal(new ObjectTransferProtocal()).MessageRecieved += Server_MessageRecieved;
-            var rpc = Server.RegisterProtocal<RPCProtocal>(new RPCProtocal(Server));
 
-            rpc.Subscribe("GetName", GetName);
+            if (Server.RPC == null)
+            {
+                throw new InvalidCastException();
+            }
+            RPC = Server.RPC;
 
-            var h = new FuncRPCHandlerArgs<int, int, int>(Multiply);
-            rpc.Subscribe("Multiply", h);
+            RPC.RegisterFrom(this);
+
             Server.Start();
 
-
+            ThreadPool.QueueUserWorkItem(async (_) =>
+            {
+                await Run();
+            });
         }
 
-
-        public async Task<string> GetSTr(int r)
+        public async Task Run()
         {
-
-            return "";
-
         }
 
-
-        public string GetName()
+        [RPC]
+        public async Task RunSetup()
         {
-            return "Shitass";
-        }
-        public int Multiply(int l, int r)
-        {
-            return l * r;
-        }
-
-        private async Task Server_MessageRecieved(string channel, Stream content)
-        {
-            Program.Stopwatch.Stop();
-            Console.WriteLine($"[Server] MsgRecieved on channel {channel}, Length: {content.Length}");
-            content.Position = 0;
-
-            Console.WriteLine($"Took {Program.Stopwatch.ElapsedMilliseconds} ms ({Program.Stopwatch.ElapsedTicks} ticks) (@ {Utils.GetReadableSpeed(Program.Stopwatch.Elapsed, content.Length)})");
+            var r = await RPC.QueryAsync<string>("GetName");
+            Console.WriteLine($"Server Name: {r}");
+            AuthWait.Release();
         }
     }
 }

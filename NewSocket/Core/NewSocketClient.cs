@@ -4,12 +4,12 @@ using System.IO;
 
 namespace NewSocket.Core
 {
-    public class SocketClient : BaseSocketClient
+    public class NewSocketClient : BaseSocketClient
     {
         public EClientRole Role { get; }
         public bool RPCEnabled { get; }
         public RPCProtocal? RPC { get; }
-        public SocketClient(Stream network, SocketClientConfig config) : base(network)
+        public NewSocketClient(Stream network, SocketClientConfig config) : base(network)
         {
             DownBufferSize = config.DownBufferSize;
             UpBufferSize = config.UpBufferSize;

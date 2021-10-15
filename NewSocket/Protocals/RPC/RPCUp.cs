@@ -41,15 +41,21 @@ namespace NewSocket.Protocals.RPC
 
         private byte[] m_Buffer;
 
-        public RPCUp(ISocketClient client, RPCHandle handle, string remoteMethod, params object?[] parameters)
+        public RPCUp(ISocketClient client, RPCHandle handle, string remoteMethod, params object?[]? parameters)
         {
             MessageID = handle.MessageID;
             RPCMessageID = handle.RPCID;
             RemoteMethod = remoteMethod;
-            Parameters = parameters;
+            if (parameters == null)
+            {
+                Parameters = new object[0];
+            } else
+            {
+                Parameters = parameters;
+            }
             IsResponse = false;
             m_Buffer = new byte[client.UpBufferSize];
-            m_ParameterSource = parameters.GetEnumerator();
+            m_ParameterSource = Parameters.GetEnumerator();
             IsResponse = false;
             Handle = handle;
         }

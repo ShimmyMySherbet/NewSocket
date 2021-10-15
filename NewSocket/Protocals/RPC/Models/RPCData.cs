@@ -1,15 +1,18 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 
 namespace NewSocket.Protocals.RPC.Models
 {
     public class RPCData
     {
-        public List<string> Objects { get; } = new List<string>();
+        public readonly ReadOnlyCollection<string> Objects;
+
+        public RPCData(List<string> objects)
+        {
+            Objects = objects.AsReadOnly();
+        }
 
         public T? ReadObject<T>(int index)
         {
@@ -19,11 +22,6 @@ namespace NewSocket.Protocals.RPC.Models
         public object? ReadObject(int index, Type type)
         {
             return JsonConvert.DeserializeObject(Objects[index], type);
-        }
-
-        public RPCData(List<string> objects)
-        {
-            Objects = objects;
         }
     }
 }
