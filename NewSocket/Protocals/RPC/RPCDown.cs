@@ -45,7 +45,7 @@ namespace NewSocket.Protocals.RPC
             Protocal = protocal;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        //[MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task<bool> Read(Stream stream, CancellationToken token)
         {
             if (m_Init)

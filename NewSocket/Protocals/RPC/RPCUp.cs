@@ -103,7 +103,7 @@ namespace NewSocket.Protocals.RPC
          *      [Bytes] Segment Data
          */
 
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        //[MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task<bool> Write(Stream stream)
         {
             if (m_Init)

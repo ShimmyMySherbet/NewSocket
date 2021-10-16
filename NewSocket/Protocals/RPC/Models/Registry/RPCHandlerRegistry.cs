@@ -35,7 +35,7 @@ namespace NewSocket.Protocals.RPC.Models.Registry
             var matches = m_Handlers.Where(x => x.Value == handler);
             foreach (var m in matches)
             {
-                m_Handlers.Remove(m.Key, out _);
+                m_Handlers.TryRemove(m.Key, out _);
             }
             return matches.Any();
         }

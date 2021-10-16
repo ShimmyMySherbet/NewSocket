@@ -19,11 +19,6 @@ namespace NewSocket.Protocals.RPC
             throw new InvalidOperationException("This socket doesn't support the RPC protocal.");
         }
 
-        public override IMessageUp CreateRPCCall(string method, out RPCHandle handle, params object?[] parameters)
-        {
-            throw new InvalidOperationException("This socket doesn't support the RPC protocal.");
-        }
-
         public override IMessageUp CreateRPCResponse(ulong parentRPCID)
         {
             throw new InvalidOperationException("This socket doesn't support the RPC protocal.");

@@ -183,7 +183,7 @@ namespace NewSocket.Core
             Stop();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining /*| MethodImplOptions.AggressiveOptimization*/)]
         protected async Task MessageUpload(Stream network, CancellationToken token)
         {
             try
@@ -227,7 +227,7 @@ namespace NewSocket.Core
          *     [Bytes..]   Protocal message body
          */
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining /*| MethodImplOptions.AggressiveOptimization*/)]
         protected async Task MessageDownload(Stream network, CancellationToken token)
         {
             try

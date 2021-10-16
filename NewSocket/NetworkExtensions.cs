@@ -20,63 +20,63 @@ namespace NewSocket
         {
             var buffer = new byte[2];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToInt16(buffer);
+            return BitConverter.ToInt16(buffer, 0);
         }
 
         public static async Task<ushort> NetReadUInt16(this Stream stream)
         {
             var buffer = new byte[2];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToUInt16(buffer);
+            return BitConverter.ToUInt16(buffer, 0);
         }
 
         public static async Task<int> NetReadInt32(this Stream stream)
         {
             var buffer = new byte[4];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToInt32(buffer);
+            return BitConverter.ToInt32(buffer, 0);
         }
 
         public static async Task<uint> NetReadUInt32(this Stream stream)
         {
             var buffer = new byte[4];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToUInt32(buffer);
+            return BitConverter.ToUInt32(buffer, 0);
         }
 
         public static async Task<long> NetReadInt64(this Stream stream)
         {
             var buffer = new byte[8];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToInt64(buffer);
+            return BitConverter.ToInt64(buffer, 0);
         }
 
         public static async Task<ulong> NetReadUInt64(this Stream stream)
         {
             var buffer = new byte[8];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToUInt64(buffer);
+            return BitConverter.ToUInt64(buffer, 0);
         }
 
         public static async Task<float> NetReadFloat(this Stream stream)
         {
             var buffer = new byte[8];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToSingle(buffer);
+            return BitConverter.ToSingle(buffer, 0);
         }
 
         public static async Task<double> NetReadDouble(this Stream stream)
         {
             var buffer = new byte[8];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToDouble(buffer);
+            return BitConverter.ToDouble(buffer, 0);
         }
 
         public static async Task<char> NetReadChar(this Stream stream)
         {
             var buffer = new byte[2];
             await stream.NetReadAsync(buffer);
-            return BitConverter.ToChar(buffer);
+            return BitConverter.ToChar(buffer, 0);
         }
 
         public static async Task<string> NetReadString(this Stream stream, uint length)
@@ -104,47 +104,56 @@ namespace NewSocket
 
         public static async Task Write(this Stream stream, short value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, ushort value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, int value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, uint value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, long value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, ulong value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, float value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, double value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, bool value)
         {
-            await stream.WriteAsync(BitConverter.GetBytes(value));
+            var buffer = BitConverter.GetBytes(value);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
         }
 
         public static async Task Write(this Stream stream, string? value, bool includeHeader = true)
@@ -154,7 +163,7 @@ namespace NewSocket
             {
                 await stream.Write((uint)upBuffer.Length);
             }
-            await stream.WriteAsync(upBuffer);
+            await stream.WriteAsync(upBuffer, 0, upBuffer.Length);
         }
 
         public static async Task NetReadAsync(this Stream stream, byte[] buffer, int bytes)

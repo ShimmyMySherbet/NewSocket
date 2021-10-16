@@ -20,7 +20,7 @@ namespace NewSocket.Protocals.RPC.Models.Registry
 
         public void ReleaseRequest(ulong RPCID, RPCData data)
         {
-            if (m_RequestHandles.Remove(RPCID, out var handle))
+            if (m_RequestHandles.TryRemove(RPCID, out var handle))
             {
                 handle.Release(data);
             }

@@ -102,7 +102,11 @@ namespace NewSocket.Protocals.OTP
                 }
                 finally
                 {
+#if NET5_0_OR_GREATER
                     await m_Read.DisposeAsync();
+#else
+                    m_Read.Dispose();
+#endif
                 }
             });
             return Task.CompletedTask;

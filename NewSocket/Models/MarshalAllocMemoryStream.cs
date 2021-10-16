@@ -22,6 +22,7 @@ namespace NewSocket.Models
                 Initialize((byte*)m_Handle.ToPointer(), length, length, FileAccess.ReadWrite);
             }
         }
+
         public MarshalAllocMemoryStream(byte[] buffer)
         {
             m_Handle = Marshal.AllocHGlobal(buffer.Length);
@@ -41,6 +42,8 @@ namespace NewSocket.Models
             }
         }
 
+#if NET5_0_OR_GREATER
+
         public override ValueTask DisposeAsync()
         {
             if (m_Disposed) return ValueTask.CompletedTask;
@@ -48,6 +51,8 @@ namespace NewSocket.Models
             FreeMemory();
             return base.DisposeAsync();
         }
+
+#endif
 
         public override void Close()
         {
