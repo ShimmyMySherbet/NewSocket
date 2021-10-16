@@ -42,16 +42,14 @@ namespace NewSocket.Models
             }
         }
 
-#if NET5_0_OR_GREATER
-
+#if NET5_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public override ValueTask DisposeAsync()
         {
-            if (m_Disposed) return ValueTask.CompletedTask;
+            if (m_Disposed) return base.DisposeAsync();
             m_Disposed = true;
             FreeMemory();
             return base.DisposeAsync();
         }
-
 #endif
 
         public override void Close()
