@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NewSocket.Core;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,9 +20,12 @@ namespace NewSocket.Models
         public override long Length => m_Length;
 
         private long m_Position;
-        public override long Position { get => m_Position; set => throw new InvalidOperationException(); }
+        public override long Position { get => m_Position; set => m_Position = value; }
 
-
+        public SocketStream(BaseSocketClient client)
+        {
+            m_Length = -1;
+        }
 
         public override void Flush()
         {

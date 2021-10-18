@@ -340,7 +340,7 @@ namespace NewSocket.Protocals.RPC
                             SocketClient.Enqueue(outBound);
                         }
                     }
-                    catch (System.Exception ex)
+                    catch (System.Exception)
                     {
                         throw;
                         // TODO: Exception proxy logic

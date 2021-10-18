@@ -33,6 +33,7 @@ namespace NewSocket.Models
             Write(buffer, 0, buffer.Length);
             Position = 0;
         }
+        
 
         ~MarshalAllocMemoryStream()
         {

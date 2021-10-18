@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
 namespace NewSocket
 {
     /// <summary>
@@ -15,9 +14,9 @@ namespace NewSocket
     /// </summary>
     public class Cout
     {
-        public const bool EnableLogging = false;
+        public static bool EnableLogging { get; set; } = false;
 
-        public static List<ConsoleColor> Colors = new[]
+        private static List<ConsoleColor> Colors = new[]
         {
             ConsoleColor.Green,
             ConsoleColor.Yellow,
