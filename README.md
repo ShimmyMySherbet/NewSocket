@@ -1,6 +1,8 @@
 # NewSocket
 **I don't know what to call this socket yet, but I don't want to keep it as 'NewSocket'**
 
+This page needs to be filled out. In the mean time, see <a href="https://github.com/ShimmyMySherbet/NewSocket/blob/master/SocketTest/Client.cs">Client</a> and <a href="https://github.com/ShimmyMySherbet/NewSocket/blob/master/SocketTest/Server.cs">Server</a> examples.
+
 ### WIP Web Socket library
 Features:
 * Message Multi-casting (so one large message can't block other messages)
