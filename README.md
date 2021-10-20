@@ -14,4 +14,10 @@ Current Message Types / Protocals:
 
 
 
+# Get Involved
 
+<a href="https://github.com/ShimmyMySherbet/NewSocket/discussions/categories/ideas">Submit feature requests/ideas</a>
+
+<a href="https://github.com/ShimmyMySherbet/NewSocket/discussions/categories/q-a">Ask a question</a>
+
+My <a href="https://discord.shimmymysherbet.com/">Discord</a>
