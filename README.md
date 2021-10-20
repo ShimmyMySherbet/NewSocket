@@ -66,7 +66,7 @@ public string GetName()
 }
 
 [RPC]
-public DateTime GetTime() => DateTime.Now;
+public static DateTime GetTime() => DateTime.Now;
 ```
 
 #### Assign Manually:
