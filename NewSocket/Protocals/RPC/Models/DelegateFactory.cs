@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace NewSocket.Protocals.RPC.Models
 {
@@ -48,32 +50,44 @@ namespace NewSocket.Protocals.RPC.Models
             return FindDelegate(new[] { Assembly.GetExecutingAssembly() }, returns, parameterTypes: parameterTypes);
         }
 
+        [MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.NoInlining)]
         public static Type? FindDelegate(Assembly[] searchAssemblies, Type returns, params Type[] parameterTypes)
         {
-            foreach (var search in searchAssemblies)
+            try
             {
-                var delegates = search.GetTypes().Where(x => x.IsSubclassOf(typeof(Delegate))).ToArray();
-
-                foreach (var del in delegates)
+                foreach (var search in searchAssemblies)
                 {
-                    if (DelegateTools.GetDelegateInfo(del, out var retType, out var delParameters))
+                    var delegates = search.GetTypes().Where(x => x.IsSubclassOf(typeof(Delegate))).ToArray();
+
+                    foreach (var del in delegates)
                     {
-                        var gens = del.GetGenericArguments();
-                        if (returns == retType && MatchesDirect(parameterTypes, delParameters))
+                        if (DelegateTools.GetDelegateInfo(del, out var retType, out var delParameters))
                         {
-                            return del;
-                        }
-
-                        //Console.WriteLine($"Del:[{del.Namespace}] {retType.Name} {del.Name}{(gens.Length != 0 ? $"<{string.Join(", ", gens.Select(x => x.Name))}>" : "")}({string.Join(", ", delParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
-
-                        var buildParamList = new Type[gens.Length];
-                        if (retType.IsGenericParameter)
-                        {
-                            buildParamList[retType.GenericParameterPosition] = returns;
-
-                            if (parameterTypes.Length == delParameters.Length)
+                            var gens = del.GetGenericArguments();
+                            if (returns == retType && MatchesDirect(parameterTypes, delParameters))
                             {
-                                var compatible = true;
+                                return del;
+                            }
+
+                            var compatible = true;
+
+                            var buildParamList = new Type[gens.Length];
+
+                            if (returns == typeof(void))
+                            {
+                                compatible = retType == typeof(void);
+                            }
+                            else if (retType.IsGenericParameter)
+                            {
+                                buildParamList[retType.GenericParameterPosition] = returns;
+                            }
+                            else if (returns != retType)
+                            {
+                                compatible = false;
+                            }
+
+                            if (parameterTypes.Length == delParameters.Length && compatible)
+                            {
                                 for (int i = 0; i < parameterTypes.Length; i++)
                                 {
                                     var requestedType = parameterTypes[i];
@@ -100,8 +114,12 @@ namespace NewSocket.Protocals.RPC.Models
                                         }
 
                                         buildParamList[delParamType.GenericParameterPosition] = requestedType;
+                                    } else
+                                    {
+                                        compatible = false;
                                     }
                                 }
+
 
                                 if (compatible)
                                 {
@@ -119,7 +137,10 @@ namespace NewSocket.Protocals.RPC.Models
                     }
                 }
             }
-
+            catch (Exception)
+            {
+                throw;
+            }
             return null;
         }
 

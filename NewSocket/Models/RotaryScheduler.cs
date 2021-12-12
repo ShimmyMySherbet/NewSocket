@@ -18,10 +18,12 @@ namespace NewSocket.Models
 
         public async Task<T> GetNext(CancellationToken token)
         {
-            lock (m_Active)
-                m_ActiveStarving = m_Active.Count == 0;
+            bool shouldRetriveNew;
 
-            if (m_ActiveStarving)
+            lock (m_Active)
+                shouldRetriveNew = m_ActiveStarving || (!m_Queue.IsEmpty && m_Active.Count < MaxConcurrent);
+
+            if (shouldRetriveNew)
             {
                 T? next;
                 while (true)

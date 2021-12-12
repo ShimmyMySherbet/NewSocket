@@ -1,10 +1,10 @@
-﻿using NewSocket.Core;
-using NewSocket.Models;
-using NewSocket.Protocals.RPC;
-using System;
+﻿using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using NewSocket.Core;
+using NewSocket.Models;
+using NewSocket.Protocals.RPC;
 
 namespace SocketTest
 {
@@ -16,6 +16,7 @@ namespace SocketTest
 
     [RPC("GetTime")]
     public delegate Task<DateTime> GetTimeRPC();
+
     public class Client
     {
         public NewSocketClient Server;
@@ -25,6 +26,7 @@ namespace SocketTest
         public LoginRPC Login;
         public GetNameRPC GetName;
         public GetTimeRPC GetTime;
+
         public Client(Stream stream)
         {
             Server = new NewSocketClient(stream, new SocketClientConfig() { RPCEnabled = true, Role = EClientRole.Client });
@@ -69,6 +71,23 @@ namespace SocketTest
 
             Console.WriteLine($"Remote Name: {await GetName()}");
             Console.WriteLine($"Remote Name: {(await GetTime()).ToShortTimeString()}");
+
+            try
+            {
+                for (int i = 0; i < 100; i++)
+                {
+                    await RPC.InvokeAsync("H1", DateTime.Now);
+                    await RPC.InvokeAsync("H2", DateTime.Now, $"A{i}");
+                    await RPC.InvokeAsync("H3", DateTime.Now, $"A{i}", $"X{i}");
+                    await RPC.InvokeAsync("H4", DateTime.Now, $"A{i}", $"X{i}", $"2x{i * 2}");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            Console.ReadLine();
 
             Console.WriteLine("Disconnecting...");
             Server.Disconnect();

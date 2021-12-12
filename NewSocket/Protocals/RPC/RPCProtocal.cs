@@ -1,17 +1,18 @@
-﻿using NewSocket.Core;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using NewSocket.Core;
 using NewSocket.Interfaces;
 using NewSocket.Models;
 using NewSocket.Protocals.RPC.Handlers;
 using NewSocket.Protocals.RPC.Interfaces;
 using NewSocket.Protocals.RPC.Models;
 using NewSocket.Protocals.RPC.Models.Registry;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace NewSocket.Protocals.RPC
 {
@@ -112,9 +113,14 @@ namespace NewSocket.Protocals.RPC
             HandlerRegistry.Register(name, global);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         public virtual void RegisterFrom<T>(T instance) where T : class
         {
             var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic);
+            if (methods == null)
+            {
+                return;
+            }
             foreach (var method in methods)
             {
                 if (method == null) continue;
@@ -175,8 +181,6 @@ namespace NewSocket.Protocals.RPC
             {
                 DelegateTools.GetReturnTypeInfo(ReturnType, out var delegateIsAsync, out var delegateReturnType, out bool delegateReturns, out _);
 
-                //Console.WriteLine($"Search Matching: {(delegateIsAsync ? "async" : "")} {ReturnType.Name}({string.Join(", ", delegateParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
-
                 foreach (var proxyClass in Assembly.GetExecutingAssembly().GetTypes().Where(x => typeof(RPCProxy).IsAssignableFrom(x)))
                 {
                     var proxyMethod = proxyClass.GetMethod("Execute", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -185,7 +189,6 @@ namespace NewSocket.Protocals.RPC
 
                     var proxyParameters = proxyMethod.GetParameters();
                     var proxyGenerics = proxyClass.GetGenericArguments();
-                    //Console.WriteLine($"Test: {(proxyIsAsync ? "async" : "")} {proxyMethod.ReturnType.Name}({string.Join(", ", proxyParameters.Select(x => $"{x.ParameterType.Name} {x.Name}"))})");
 
                     if (proxyParameters.Length == delegateParameters.Length)
                     {
@@ -269,7 +272,7 @@ namespace NewSocket.Protocals.RPC
                             }
                             else
                             {
-                                // Class has generic parameters that are not accounted for.
+                                // Delegate has generic parameters that are not accounted for.
                                 compatible = false;
                                 continue;
                             }
@@ -283,7 +286,7 @@ namespace NewSocket.Protocals.RPC
                                 if (proxyInstance == null)
                                     throw new InvalidOperationException();
                             }
-                            catch (Exception) // catch class activation exceptions
+                            catch (Exception) // catch delegate activation exceptions
                             {
                                 compatible = false;
                                 continue;
@@ -342,6 +345,11 @@ namespace NewSocket.Protocals.RPC
                             var outBound = CreateRPCResponse(id, returnValue);
 
                             SocketClient.Enqueue(outBound);
+                        }
+                        else
+                        {
+                            var outbound = CreateRPCResponse(id);
+                            SocketClient.Enqueue(outbound);
                         }
                         return;
                     }
