@@ -12,7 +12,7 @@ namespace NewSocket
         {
             var byt = stream.ReadByte();
             if (byt == -1)
-                throw new SocketException((int)SocketError.NoData);
+                throw new InvalidOperationException("No data could be read from the stream");
             return (byte)byt;
         }
 

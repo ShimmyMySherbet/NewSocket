@@ -9,6 +9,7 @@ namespace NewSocket.Core
         public EClientRole Role { get; }
         public bool RPCEnabled { get; }
         public RPCProtocal? RPC { get; }
+
         public NewSocketClient(Stream network, SocketClientConfig config) : base(network)
         {
             DownBufferSize = config.DownBufferSize;
@@ -17,6 +18,9 @@ namespace NewSocket.Core
             RPCEnabled = config.RPCEnabled;
             Role = config.Role;
             AllowPartialSocket = config.PartialSocket;
+            AllowSocketReuse = config.AllowSocketReuse;
+            AllowQueueForReuse = config.AllowSocketReuse;
+            AllowQueueBeforeStart = config.AllowQueueBeforeStart;
 
             if (config.MessageScheduler != null)
             {
@@ -31,7 +35,8 @@ namespace NewSocket.Core
             if (RPCEnabled)
             {
                 RPC = RegisterProtocal(new RPCProtocal(this));
-            } else
+            }
+            else
             {
                 RPC = new NullRPCProtocal(this);
             }

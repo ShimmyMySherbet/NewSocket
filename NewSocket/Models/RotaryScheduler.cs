@@ -1,11 +1,10 @@
-﻿using NewSocket.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using NewSocket.Interfaces;
 
 namespace NewSocket.Models
 {
@@ -14,11 +13,45 @@ namespace NewSocket.Models
         public int MaxConcurrent { get; set; } = 5;
         private SemaphoreSlim m_Semaphore = new SemaphoreSlim(0);
         private ConcurrentQueue<T> m_Queue = new ConcurrentQueue<T>();
-
-        private List<T> m_ActiveMessages = new List<T>();
-        private int m_ActiveMessageCount = 0;
+        private List<T> m_Active = new List<T>();
+        private bool m_ActiveStarving = true;
         private int m_Index = 0;
 
+        public async Task<T> GetNext(CancellationToken token)
+        {
+            lock (m_Active)
+                m_ActiveStarving = m_Active.Count == 0;
+
+            if (m_ActiveStarving)
+            {
+                T? next;
+                while (true)
+                {
+                    await m_Semaphore.WaitAsync(token);
+                    if (m_Queue.TryDequeue(out next) && next != null)
+                    {
+                        break;
+                    }
+                }
+
+                m_ActiveStarving = false;
+                lock (m_Active)
+                {
+                    m_Active.Add(next);
+                }
+
+                return next;
+            }
+            else
+            {
+                lock (m_Active)
+                {
+                    var index = (m_Index + 1) % MaxConcurrent;
+                    var next = m_Active[index];
+                    return next;
+                }
+            }
+        }
 
         public void Enqueue(T value)
         {
@@ -26,52 +59,17 @@ namespace NewSocket.Models
             m_Semaphore.Release();
         }
 
-        private async Task<T?> DequeueNext(CancellationToken token)
-        {
-            await m_Semaphore.WaitAsync(token);
-            token.ThrowIfCancellationRequested();
-            if (m_Queue.TryDequeue(out var up))
-            {
-                return up;
-            }
-            return null;
-        }
-
-        public async Task<T> GetNext(CancellationToken token)
-        {
-            m_Index = m_Index + 1 % MaxConcurrent;
-
-            if (m_Index > m_ActiveMessageCount && (m_Queue.Count > 0 || m_ActiveMessageCount == 0))
-            {
-                T? next = null;
-                while (next == null)
-                {
-                    next = await DequeueNext(token);
-                }
-
-                lock (m_ActiveMessages)
-                    m_ActiveMessages.Add(next);
-                m_ActiveMessageCount++;
-                return next;
-            } else
-            {
-                lock (m_ActiveMessages)
-                    return m_ActiveMessages[m_Index % m_ActiveMessageCount];
-            }
-        }
-
         public bool Finalize(T value)
         {
-            lock(m_ActiveMessages)
+            lock (m_Active)
             {
-                if (m_ActiveMessages.Contains(value))
+                if (m_Active.Contains(value))
                 {
-                    m_ActiveMessages.Remove(value);
-                    m_ActiveMessageCount = m_ActiveMessages.Count;
-                    if (value is IDisposable dispose)
-                        dispose.Dispose();
+                    m_Active.Remove(value);
+                    m_ActiveStarving = m_Active.Count == 0;
                     return true;
                 }
+                m_ActiveStarving = m_Active.Count == 0;
             }
             return false;
         }

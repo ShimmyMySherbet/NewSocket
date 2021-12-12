@@ -37,9 +37,7 @@ namespace NewSocket
             {
                 var pre = Console.ForegroundColor;
                 Console.ForegroundColor = GetThreadColor(source);
-                Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] [{source}] {message}");
                 Console.ForegroundColor = pre;
-                Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] [{source}] {message}");
             }
         }
 

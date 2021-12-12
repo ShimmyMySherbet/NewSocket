@@ -1,14 +1,14 @@
-﻿using NewSocket.Interfaces;
-using NewSocket.Models;
-using NewSocket.Protocals.RPC.Models;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections;
+using System.Diagnostics;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NewSocket.Interfaces;
+using NewSocket.Models;
+using NewSocket.Protocals.RPC.Models;
+using Newtonsoft.Json;
 
 namespace NewSocket.Protocals.RPC
 {
@@ -49,7 +49,8 @@ namespace NewSocket.Protocals.RPC
             if (parameters == null)
             {
                 Parameters = new object[0];
-            } else
+            }
+            else
             {
                 Parameters = parameters;
             }
@@ -106,8 +107,14 @@ namespace NewSocket.Protocals.RPC
         //[MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task<bool> Write(Stream stream)
         {
+            if (Complete)
+            {
+                return true;
+            }
+
             if (m_Init)
             {
+
                 var length = Parameters.Length;
 
                 await stream.Write(IsResponse);

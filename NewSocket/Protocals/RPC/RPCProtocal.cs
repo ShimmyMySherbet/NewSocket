@@ -114,23 +114,26 @@ namespace NewSocket.Protocals.RPC
 
         public virtual void RegisterFrom<T>(T instance) where T : class
         {
-            var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic);
             foreach (var method in methods)
             {
                 if (method == null) continue;
-                var del = DelegateFactory.CreateDelegate(method, instance);
-                if (del != null)
+                if (method.GetCustomAttributes<RPCAttribute>().Any())
                 {
-                    foreach (var rpcAttrib in method.GetCustomAttributes<RPCAttribute>())
+                    var del = DelegateFactory.CreateDelegate(method, instance);
+                    if (del != null)
                     {
-                        var name = rpcAttrib.MethodName ?? method.Name;
-                        var handler = new GlobalDelegateHandler(name, del);
-                        HandlerRegistry.Register(name, handler);
+                        foreach (var rpcAttrib in method.GetCustomAttributes<RPCAttribute>())
+                        {
+                            var name = rpcAttrib.MethodName ?? method.Name;
+                            var handler = new GlobalDelegateHandler(name, del);
+                            HandlerRegistry.Register(name, handler);
+                        }
                     }
-                }
-                else
-                {
-                    Debug.WriteLine($"[WARN] Failed to generate delegate handler for RPC {method.DeclaringType?.FullName}::{method.Name}");
+                    else
+                    {
+                        Debug.WriteLine($"[WARN] Failed to generate delegate handler for RPC {method.DeclaringType?.FullName}::{method.Name}");
+                    }
                 }
             }
         }
@@ -337,8 +340,10 @@ namespace NewSocket.Protocals.RPC
                         if (handler.HasReturn)
                         {
                             var outBound = CreateRPCResponse(id, returnValue);
+
                             SocketClient.Enqueue(outBound);
                         }
+                        return;
                     }
                     catch (System.Exception)
                     {

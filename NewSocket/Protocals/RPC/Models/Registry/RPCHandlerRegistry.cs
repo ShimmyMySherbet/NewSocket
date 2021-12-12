@@ -3,6 +3,7 @@ using Newtonsoft.Json.Schema;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace NewSocket.Protocals.RPC.Models.Registry
@@ -27,6 +28,7 @@ namespace NewSocket.Protocals.RPC.Models.Registry
             {
                 return handler;
             }
+            Debug.WriteLine($"[RPC HANDLER] [ERR] Failed to find a handler for {name}");
             return null;
         }
 

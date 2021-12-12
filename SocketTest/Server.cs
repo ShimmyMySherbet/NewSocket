@@ -10,7 +10,7 @@ namespace SocketTest
     {
         public NewSocketClient Client;
         public RPCProtocal RPC;
-
+        public delegate void VD();
         public Server(Stream stream)
         {
             Client = new NewSocketClient(stream, new NewSocket.Models.SocketClientConfig()

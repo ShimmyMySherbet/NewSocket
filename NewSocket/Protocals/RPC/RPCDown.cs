@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -67,6 +68,8 @@ namespace NewSocket.Protocals.RPC
                     Complete = true;
                     return true;
                 }
+
+
             }
 
             if (m_CurrentObject == null)
@@ -107,6 +110,7 @@ namespace NewSocket.Protocals.RPC
                     return true;
                 }
             }
+
             return false;
         }
 
