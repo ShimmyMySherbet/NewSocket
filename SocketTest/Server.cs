@@ -1,8 +1,8 @@
-﻿using NewSocket.Core;
-using NewSocket.Protocals.RPC;
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using NewSocket.Core;
+using NewSocket.Protocals.RPC;
 
 namespace SocketTest
 {
@@ -10,7 +10,9 @@ namespace SocketTest
     {
         public NewSocketClient Client;
         public RPCProtocal RPC;
+
         public delegate void VD();
+
         public Server(Stream stream)
         {
             Client = new NewSocketClient(stream, new NewSocket.Models.SocketClientConfig()
@@ -32,14 +34,11 @@ namespace SocketTest
             Client.onDisconnect += onClientDisconnect;
 
             Client.Start();
-
-            Client.onDisconnect += onClientDisconnect;
-
         }
 
         private void onClientDisconnect(NewSocket.Models.DisconnectContext context)
         {
-            Console.WriteLine($"Client Disconnected. Expected: {!context.Unexpected}, Faulted: {context.IsFaulted}");
+            Console.WriteLine($"[Server] Client Disconnected. Expected: {!context.Unexpected}, Faulted: {context.IsFaulted}");
         }
 
         [RPC]
@@ -48,7 +47,6 @@ namespace SocketTest
             await Task.Delay(10);
         }
 
-
         [RPC]
         public async Task<bool> Login(string username, string password)
         {
@@ -56,8 +54,6 @@ namespace SocketTest
             await Task.Delay(100);
             return !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password);
         }
-
-
 
         [RPC]
         public string GetName()

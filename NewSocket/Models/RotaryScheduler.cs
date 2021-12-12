@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using NewSocket.Interfaces;
@@ -46,7 +45,7 @@ namespace NewSocket.Models
             {
                 lock (m_Active)
                 {
-                    var index = (m_Index + 1) % MaxConcurrent;
+                    var index = (m_Index + 1) % m_Active.Count;
                     var next = m_Active[index];
                     return next;
                 }

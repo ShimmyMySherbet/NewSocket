@@ -35,7 +35,7 @@ namespace SocketTest
                 throw new InvalidCastException();
             }
             RPC = Server.RPC;
-
+            Server.onDisconnect += onDisconnect;
             RPC.RegisterFrom(this);
 
             Login = RPC.GetRPC<LoginRPC>();
@@ -51,6 +51,13 @@ namespace SocketTest
                 await Run();
             });
         }
+
+        private void onDisconnect(DisconnectContext context)
+        {
+            Console.WriteLine($"[Client] Disconnected: Expected: {!context.Unexpected}");
+            throw new NotImplementedException();
+        }
+
         public async Task Run()
         {
             Console.WriteLine("Logging in...");
