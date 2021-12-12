@@ -19,11 +19,6 @@ namespace SocketTest
                 Role = NewSocket.Models.EClientRole.Server,
                 PartialSocket = false
             });
-            Client.MessageIDAssigner.AssignID();
-            Client.MessageIDAssigner.AssignID();
-            Client.MessageIDAssigner.AssignID();
-            Client.MessageIDAssigner.AssignID();
-            Client.MessageIDAssigner.AssignID();
 
             Client.Name = "Server";
 
