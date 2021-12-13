@@ -5,6 +5,7 @@
 	<Nullable>enable</Nullable>
 	<WarningsAsErrors>nullable</WarningsAsErrors>
 	<LangVersion>9.0</LangVersion>
+	<Version>1.2.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net5.0|AnyCPU'">

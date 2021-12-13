@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NewSocket
@@ -30,17 +30,19 @@ namespace NewSocket
             return BitConverter.ToUInt16(buffer, 0);
         }
 
-        public static async Task<int> NetReadInt32(this Stream stream)
+        public static async Task<int> NetReadInt32(this Stream stream, CancellationToken token = default)
         {
             var buffer = new byte[4];
-            await stream.NetReadAsync(buffer);
+            await stream.NetReadAsync(buffer, token);
+            if (token.IsCancellationRequested)
+                return 0;
             return BitConverter.ToInt32(buffer, 0);
         }
 
-        public static async Task<uint> NetReadUInt32(this Stream stream)
+        public static async Task<uint> NetReadUInt32(this Stream stream, CancellationToken token = default)
         {
             var buffer = new byte[4];
-            await stream.NetReadAsync(buffer);
+            await stream.NetReadAsync(buffer, token);
             return BitConverter.ToUInt32(buffer, 0);
         }
 
@@ -86,14 +88,25 @@ namespace NewSocket
             return Encoding.UTF8.GetString(buffer);
         }
 
-        public static async Task<string> NetReadString(this Stream stream)
+        public static async Task NetWriteString(this Stream stream, string content)
         {
-            var length = await stream.NetReadUInt32();
-            var buffer = new byte[length];
-            await stream.NetReadAsync(buffer);
-            return Encoding.UTF8.GetString(buffer);
+            var buf = Encoding.UTF8.GetBytes(content);
+            var lenByt = BitConverter.GetBytes((uint)buf.Length);
+            await stream.WriteAsync(lenByt, 0, lenByt.Length);
+            await stream.WriteAsync(buf, 0, buf.Length);
         }
 
+        public static async Task<string> NetReadString(this Stream stream, CancellationToken token = default)
+        {
+            var length = await stream.NetReadUInt32(token);
+            if (token.IsCancellationRequested)
+                return string.Empty;
+            var buffer = new byte[length];
+            await stream.NetReadAsync(buffer, token);
+            if (token.IsCancellationRequested)
+                return string.Empty;
+            return Encoding.UTF8.GetString(buffer);
+        }
 
         public static async Task<bool> NetReadBool(this Stream stream)
         {
@@ -166,21 +179,22 @@ namespace NewSocket
             await stream.WriteAsync(upBuffer, 0, upBuffer.Length);
         }
 
-        public static async Task NetReadAsync(this Stream stream, byte[] buffer, int bytes)
+        public static async Task NetReadAsync(this Stream stream, byte[] buffer, int bytes, CancellationToken token = default)
         {
             int remaining = bytes;
             int offset = 0;
-            while (remaining > 0)
+            while (remaining > 0 || token.IsCancellationRequested)
             {
-                var read = await stream.ReadAsync(buffer, offset, remaining);
+                var read = await stream.ReadAsync(buffer, offset, remaining, token);
+                if (token.IsCancellationRequested) return;
                 remaining -= read;
                 offset += read;
             }
         }
 
-        public static async Task NetReadAsync(this Stream stream, byte[] buffer)
+        public static async Task NetReadAsync(this Stream stream, byte[] buffer, CancellationToken token = default)
         {
-            await stream.NetReadAsync(buffer, buffer.Length);
+            await stream.NetReadAsync(buffer, buffer.Length, token);
         }
     }
 }

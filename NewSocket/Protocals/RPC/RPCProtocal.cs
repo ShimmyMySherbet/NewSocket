@@ -177,7 +177,12 @@ namespace NewSocket.Protocals.RPC
         /// <returns>RPC delegate handle</returns>
         public T GetRPC<T>(string method) where T : Delegate
         {
-            if (DelegateTools.GetDelegateInfo(typeof(T), out var ReturnType, out var delegateParameters))
+            return (T)GetRPC(method, typeof(T));
+        }
+
+        public Delegate GetRPC(string method, Type delegaateType)
+        {
+            if (DelegateTools.GetDelegateInfo(delegaateType, out var ReturnType, out var delegateParameters))
             {
                 DelegateTools.GetReturnTypeInfo(ReturnType, out var delegateIsAsync, out var delegateReturnType, out bool delegateReturns, out _);
 
@@ -277,7 +282,7 @@ namespace NewSocket.Protocals.RPC
                                 continue;
                             }
 
-                            var activationArguments = new object[] { this, method, typeof(T) };
+                            var activationArguments = new object[] { this, method, delegaateType };
                             RPCProxy? proxyInstance;
 
                             try
@@ -294,12 +299,12 @@ namespace NewSocket.Protocals.RPC
 
                             try
                             {
-                                var delegateBinding = Delegate.CreateDelegate(typeof(T), proxyInstance, "Execute", true, true);
+                                var delegateBinding = Delegate.CreateDelegate(delegaateType, proxyInstance, "Execute", true, true);
 
                                 if (delegateBinding == null)
                                     throw new InvalidOperationException();
 
-                                return (T)delegateBinding;
+                                return delegateBinding;
                             }
                             catch (Exception) // catch delegate binding and casting exceptions
                             {
@@ -316,6 +321,7 @@ namespace NewSocket.Protocals.RPC
             }
             throw new ArgumentException("Failed to bind proxy delegate for specified delegate type");
         }
+
 
         private async Task HandleRPC(ulong id, string method, string[] args)
         {

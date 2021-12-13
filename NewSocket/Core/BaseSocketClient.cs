@@ -90,8 +90,6 @@ namespace NewSocket.Core
 
         public virtual void Start()
         {
-            var stack = new StackTrace();
-
             if (Dead && !AllowSocketReuse)
             {
                 throw new SocketDeadException();

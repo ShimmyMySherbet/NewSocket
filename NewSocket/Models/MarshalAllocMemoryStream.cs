@@ -12,6 +12,7 @@ namespace NewSocket.Models
     public class MarshalAllocMemoryStream : UnmanagedMemoryStream
     {
         private IntPtr m_Handle;
+        public IntPtr Handle => m_Handle;
         private bool m_Disposed = false;
 
         public MarshalAllocMemoryStream(int length)
