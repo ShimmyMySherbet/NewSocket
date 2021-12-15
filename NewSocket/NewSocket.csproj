@@ -6,6 +6,14 @@
 	<WarningsAsErrors>nullable</WarningsAsErrors>
 	<LangVersion>9.0</LangVersion>
 	<Version>1.2.0</Version>
+	<PackageId>ShimmyMYSherbet.NewSocket</PackageId>
+	<Authors>ShimmyMySherbet</Authors>
+	<Description>A lightweight and powerful async RPC socket library. Designed for ease of use.</Description>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<Copyright>ShimmyMySherbet</Copyright>
+	<PackageProjectUrl></PackageProjectUrl>
+	<RepositoryUrl>https://github.com/ShimmyMySherbet/NewSocket</RepositoryUrl>
+	<PackageTags>RPC Networking Socket</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net5.0|AnyCPU'">

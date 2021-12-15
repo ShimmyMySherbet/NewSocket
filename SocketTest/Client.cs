@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using NewSocket.Core;
 using NewSocket.Models;
 using NewSocket.Protocals.RPC;
+using NewSocket.Security.Protocols;
 
 namespace SocketTest
 {
@@ -19,8 +20,7 @@ namespace SocketTest
 
     public class Client
     {
-        public NewSocketClient Server;
-        public RPCProtocal RPC;
+        public RPCSocketClient Server;
         public AsyncWaitHandle AuthWait = new AsyncWaitHandle();
 
         public LoginRPC Login;
@@ -29,28 +29,32 @@ namespace SocketTest
 
         public Client(Stream stream)
         {
-            Server = new NewSocketClient(stream, new SocketClientConfig() { RPCEnabled = true, Role = EClientRole.Client });
-            Server.Name = "Client";
+            var sec = new AESPresharedKeyProtocol("pas");
 
-            if (Server.RPC == null)
-            {
-                throw new InvalidCastException();
-            }
-            RPC = Server.RPC;
+            Server = new RPCSocketClient(stream, sec);
+
             Server.onDisconnect += onDisconnect;
-            RPC.RegisterFrom(this);
+            Server.RegisterFrom(this);
 
-            Login = RPC.GetRPC<LoginRPC>();
+            Login = Server.GetRPC<LoginRPC>();
 
-            Login = RPC.GetRPC<LoginRPC>("Login");
+            Login = Server.GetRPC<LoginRPC>("Login");
 
-            GetName = RPC.GetRPC<GetNameRPC>();
-            GetTime = RPC.GetRPC<GetTimeRPC>();
-            Server.Start();
+            GetName = Server.GetRPC<GetNameRPC>();
+            GetTime = Server.GetRPC<GetTimeRPC>();
 
             ThreadPool.QueueUserWorkItem(async (_) =>
             {
-                await Run();
+                try
+                {
+                    await Server.StartAsync();
+                    await Run();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    throw;
+                }
             });
         }
 
@@ -76,10 +80,10 @@ namespace SocketTest
             {
                 for (int i = 0; i < 100; i++)
                 {
-                    await RPC.InvokeAsync("H1", DateTime.Now);
-                    await RPC.InvokeAsync("H2", DateTime.Now, $"A{i}");
-                    await RPC.InvokeAsync("H3", DateTime.Now, $"A{i}", $"X{i}");
-                    await RPC.InvokeAsync("H4", DateTime.Now, $"A{i}", $"X{i}", $"2x{i * 2}");
+                    await Server.InvokeAsync("H1", DateTime.Now);
+                    await Server.InvokeAsync("H2", DateTime.Now, $"A{i}");
+                    await Server.InvokeAsync("H3", DateTime.Now, $"A{i}", $"X{i}");
+                    await Server.InvokeAsync("H4", DateTime.Now, $"A{i}", $"X{i}", $"2x{i * 2}");
                 }
             }
             catch (Exception)
@@ -97,7 +101,7 @@ namespace SocketTest
         [RPC]
         public async Task RunSetup()
         {
-            var r = await RPC.QueryAsync<string>("GetName");
+            var r = await Server.QueryAsync<string>("GetName");
             Console.WriteLine($"Server Name: {r}");
             AuthWait.Release();
         }

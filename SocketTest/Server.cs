@@ -3,37 +3,37 @@ using System.IO;
 using System.Threading.Tasks;
 using NewSocket.Core;
 using NewSocket.Protocals.RPC;
+using NewSocket.Security.Protocols;
 
 namespace SocketTest
 {
     public class Server
     {
-        public NewSocketClient Client;
-        public RPCProtocal RPC;
+        public RPCSocketClient Client;
 
         public delegate void VD();
 
         public Server(Stream stream)
         {
-            Client = new NewSocketClient(stream, new NewSocket.Models.SocketClientConfig()
-            {
-                RPCEnabled = true,
-                Role = NewSocket.Models.EClientRole.Server,
-                PartialSocket = false
-            });
-
-            Client.Name = "Server";
-
-            if (Client.RPC == null)
-            {
-                throw new InvalidOperationException();
-            }
-            RPC = Client.RPC;
-            Client.RPC.RegisterFrom(this);
+            var sec = new AESPresharedKeyProtocol("pas");
+            Client = new RPCSocketClient(stream, sec);
+            Client.RegisterFrom(this);
 
             Client.onDisconnect += onClientDisconnect;
 
-            Client.Start();
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Client.StartAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    throw;
+                }
+
+            });
         }
 
         private void onClientDisconnect(NewSocket.Models.DisconnectContext context)

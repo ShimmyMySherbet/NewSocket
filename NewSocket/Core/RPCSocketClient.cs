@@ -23,19 +23,25 @@ namespace NewSocket.Core
             UnderlyingNetwork = network;
             RPC = RegisterProtocal(new RPCProtocal(this));
             Security = protocol;
-            if (Security != null && !Security.Preauthenticate)
+            if (Security != null)
             {
-                var up = Security.GetUpStream(network);
-                var down = Security.GetDownStream(network);
+                if (!Security.Preauthenticate)
+                {
+                    var up = Security.GetUpStream(network);
+                    var down = Security.GetDownStream(network);
 
-                if (up != null)
-                {
-                    SetStream(ESocketStream.Up, up);
+                    if (up != null)
+                    {
+                        SetStream(ESocketStream.Up, up);
+                    }
+                    if (down != null)
+                    {
+                        SetStream(ESocketStream.Down, down);
+                    }
                 }
-                if (down != null)
-                {
-                    SetStream(ESocketStream.Down, down);
-                }
+            } else
+            {
+                SetStream(ESocketStream.Both, network);
             }
         }
 
