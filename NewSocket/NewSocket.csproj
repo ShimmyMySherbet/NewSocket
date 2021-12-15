@@ -6,7 +6,7 @@
 	<WarningsAsErrors>nullable</WarningsAsErrors>
 	<LangVersion>9.0</LangVersion>
 	<Version>1.2.0</Version>
-	<PackageId>ShimmyMYSherbet.NewSocket</PackageId>
+	<PackageId>ShimmyMySherbet.NewSocket</PackageId>
 	<Authors>ShimmyMySherbet</Authors>
 	<Description>A lightweight and powerful async RPC socket library. Designed for ease of use.</Description>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
