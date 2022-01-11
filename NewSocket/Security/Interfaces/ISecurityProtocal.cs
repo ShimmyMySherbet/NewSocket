@@ -19,5 +19,7 @@ namespace NewSocket.Security.Interfaces
         Task Authenticate(Stream network);
 
         Task OnSocketStarted(BaseSocketClient socket);
+
+        Task MessageSent();
     }
 }

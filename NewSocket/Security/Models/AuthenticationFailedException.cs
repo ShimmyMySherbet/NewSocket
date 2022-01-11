@@ -2,6 +2,11 @@
 
 namespace NewSocket.Security.Models
 {
+    /// <summary>
+    /// Indicates that authentication to remote server failed.
+    /// This could indicate differing security protocols, an invalid password/certificate
+    /// Or, it could potentially indicate a bad actor tampering with the connection.
+    /// </summary>
     public class AuthenticationFailedException : Exception
     {
         public AuthenticationFailedException()

@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using NewSocket.Core;
 using NewSocket.Protocals.RPC;
+using NewSocket.Security.Models;
 using NewSocket.Security.Protocols;
 
 namespace SocketTest
@@ -15,8 +16,8 @@ namespace SocketTest
 
         public Server(Stream stream)
         {
-            var sec = new AESPresharedKeyProtocol("pas");
-            Client = new RPCSocketClient(stream, sec);
+
+            Client = new RPCSocketClient(stream, RSAProtocol.CreateCertExchange());
             Client.RegisterFrom(this);
 
             Client.onDisconnect += onClientDisconnect;

@@ -29,9 +29,9 @@ namespace SocketTest
 
         public Client(Stream stream)
         {
-            var sec = new AESPresharedKeyProtocol("pas");
+            //var sec = new AESPresharedKeyProtocol("pas");
 
-            Server = new RPCSocketClient(stream, sec);
+            Server = new RPCSocketClient(stream, RSAProtocol.CreateCertExchange());
 
             Server.onDisconnect += onDisconnect;
             Server.RegisterFrom(this);

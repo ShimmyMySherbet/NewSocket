@@ -86,5 +86,10 @@ namespace NewSocket.Security.Protocols
         {
             return Task.CompletedTask;
         }
+
+        public Task MessageSent()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

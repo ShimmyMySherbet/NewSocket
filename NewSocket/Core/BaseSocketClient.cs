@@ -252,12 +252,14 @@ namespace NewSocket.Core
                     //Cout.Write($"{Name} Up", "Write Message ID");
                     await network.Write(message.MessageID);
                     //Cout.Write($"{Name} Up", "Send Protocal Write");
+                    await OnMessageSent();
                     bool complete = await message.Write(network);
                     //Cout.Write($"{Name} Up", $"Protocal Write finished, Message complete: {complete}");
                     if (complete)
                     {
                         //Cout.Write($"{Name} Up", "Messaged completed, sending finalize...");
                         m_MessageScheduler.Finalize(message);
+                        await OnMessageSent();
                     }
                     //Cout.Write($"{Name} Up", "Checking Token Throw...");
                     token.ThrowIfCancellationRequested();
@@ -273,6 +275,11 @@ namespace NewSocket.Core
             }
 
         }
+
+        /// <summary>
+        /// Used for security protocols
+        /// </summary>
+        protected virtual Task OnMessageSent() => Task.CompletedTask;
 
         /*
          *     Format:

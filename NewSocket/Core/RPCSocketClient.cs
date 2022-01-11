@@ -45,6 +45,14 @@ namespace NewSocket.Core
             }
         }
 
+        protected override async Task OnMessageSent()
+        {
+            if (Security != null)
+            {
+                await Security.MessageSent();
+            }
+        }
+
         public async Task StartAsync()
         {
             if (Security != null && Security.Preauthenticate)
