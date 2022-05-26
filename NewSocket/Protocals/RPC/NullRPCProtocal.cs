@@ -34,10 +34,5 @@ namespace NewSocket.Protocals.RPC
         {
             throw new InvalidOperationException("This socket doesn't support the RPC protocal.");
         }
-
-        public override void Subscribe(string name, Delegate handler)
-        {
-            throw new InvalidOperationException("This socket doesn't support the RPC protocal.");
-        }
     }
 }

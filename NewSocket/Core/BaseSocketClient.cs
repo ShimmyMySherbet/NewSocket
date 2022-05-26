@@ -228,7 +228,6 @@ namespace NewSocket.Core
 
             try
             {
-                onDisconnect?.Invoke(context);
             }
             catch (Exception)
             {

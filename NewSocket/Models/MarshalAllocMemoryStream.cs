@@ -14,6 +14,7 @@ namespace NewSocket.Models
         private IntPtr m_Handle;
         public IntPtr Handle => m_Handle;
         private bool m_Disposed = false;
+        public long RemainingLength => Length - Position;
 
         public MarshalAllocMemoryStream(int length)
         {

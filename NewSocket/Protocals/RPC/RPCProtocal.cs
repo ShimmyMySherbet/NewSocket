@@ -35,29 +35,6 @@ namespace NewSocket.Protocals.RPC
             SocketClient = socketClient;
         }
 
-        //public Task<IMessageDown> CreateDown(ulong messageID, BaseSocketClient client)
-        //{
-        //    return Task.FromResult((IMessageDown)new RPCDown(messageID, this));
-        //}
-
-        //public IMessageUp CreateRPCCall(string method, params object[] parameters)
-        //{
-        //    var msg = new RPCUp(SocketClient, SocketClient.MessageIDAssigner.AssignID(), RPCAssigner.AssignID(), method, parameters);
-        //    return msg;
-        //}
-
-        //public IMessageUp CreateRPCResponse(ulong parentRPCID, object response)
-        //{
-        //    var msg = new RPCUp(SocketClient, SocketClient.MessageIDAssigner.AssignID(), parentRPCID, response);
-        //    return msg;
-        //}
-
-        //public IMessageUp CreateRPCResponse(ulong parentRPCID)
-        //{
-        //    var msg = new RPCUp(SocketClient, SocketClient.MessageIDAssigner.AssignID(), parentRPCID);
-        //    return msg;
-        //}
-
         public virtual Task<IMessageDown> CreateDown(ulong messageID, BaseSocketClient client)
         {
             return Task.FromResult((IMessageDown)new RPCDown(messageID, this));
@@ -105,12 +82,6 @@ namespace NewSocket.Protocals.RPC
             var msg = CreateRPCCall(method, out var handle, parameters: parameters);
             SocketClient.Enqueue(msg);
             await handle.WaitAsync();
-        }
-
-        public virtual void Subscribe(string name, Delegate handler)
-        {
-            var global = new GlobalDelegateHandler(name, handler);
-            HandlerRegistry.Register(name, global);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
@@ -321,7 +292,6 @@ namespace NewSocket.Protocals.RPC
             }
             throw new ArgumentException("Failed to bind proxy delegate for specified delegate type");
         }
-
 
         private async Task HandleRPC(ulong id, string method, string[] args)
         {
