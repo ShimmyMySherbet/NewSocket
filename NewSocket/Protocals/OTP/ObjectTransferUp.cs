@@ -44,6 +44,7 @@ namespace NewSocket.Protocals.OTP
         private int m_MaxTransferSize => Socket.UpTransferSize;
 
         public bool Complete { get; private set; } = false;
+        public bool WantsToWrite => true;
 
         /// <summary>
         /// Creates a message with a JSON serialized object

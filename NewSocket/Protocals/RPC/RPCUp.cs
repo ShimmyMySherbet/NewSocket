@@ -39,6 +39,8 @@ namespace NewSocket.Protocals.RPC
 
         private int m_MaxTransferSize => 1024 * 8;
 
+        public bool WantsToWrite => true;
+
         private byte[] m_Buffer;
 
         public RPCUp(ISocketClient client, RPCHandle handle, string remoteMethod, params object?[]? parameters)
@@ -54,6 +56,7 @@ namespace NewSocket.Protocals.RPC
             {
                 Parameters = parameters;
             }
+
             IsResponse = false;
             m_Buffer = new byte[client.UpBufferSize];
             m_ParameterSource = Parameters.GetEnumerator();

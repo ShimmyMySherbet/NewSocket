@@ -6,7 +6,6 @@ namespace NewSocket.Interfaces
     {
         ulong MessageID { get; }
         byte MessageType { get; }
-
         bool Complete { get; }
     }
 }

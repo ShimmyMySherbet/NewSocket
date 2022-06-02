@@ -9,8 +9,7 @@ namespace NewSocket.Interfaces
 {
     public interface IMessageUp : IDisposable, IMessage
     {
-
+        bool WantsToWrite { get; }
         Task<bool> Write(Stream stream);
-
     }
 }

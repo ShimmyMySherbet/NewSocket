@@ -7,7 +7,7 @@ using NewSocket.Models;
 
 namespace NewSocket.Protocals.NetSynced.Models
 {
-    public class NetSyncedStreamBuffer : Stream
+    public class NetSyncedDownBuffer : Stream
     {
         private SemaphoreSlim m_BlockSemaphore = new(0);
         private ConcurrentQueue<MarshalAllocMemoryStream> m_Blocks = new();
@@ -19,6 +19,10 @@ namespace NewSocket.Protocals.NetSynced.Models
         public override long Length => -1;
         public override long Position { get; set; }
 
+        public bool IsClosed { get; set; }
+
+        public bool EndOfStream { get; private set; } = false;
+
         public void SetStreamRedirect(Stream stream)
         {
             if (RedirectStream != null)
@@ -28,10 +32,10 @@ namespace NewSocket.Protocals.NetSynced.Models
             RedirectStream = stream;
         }
 
-        public async Task ReceiveBlockAsync(Stream network, int bufferLength)
+        public async Task ReceiveBlockAsync(Stream network, int blockLength)
         {
             var buffer = new byte[1024];
-            var remainingBytes = bufferLength;
+            var remainingBytes = blockLength;
 
             if (RedirectStream != null)
             {
@@ -48,7 +52,7 @@ namespace NewSocket.Protocals.NetSynced.Models
                 return;
             }
 
-            var block = new MarshalAllocMemoryStream(bufferLength);
+            var block = new MarshalAllocMemoryStream(blockLength);
 
             while (remainingBytes > 0)
             {
@@ -69,30 +73,42 @@ namespace NewSocket.Protocals.NetSynced.Models
         {
         }
 
-        private async Task<MarshalAllocMemoryStream> WaitForBlockAsync()
+        private async Task<MarshalAllocMemoryStream?> WaitForBlockAsync()
         {
             if (CurrentBlock == null || CurrentBlock.Position >= CurrentBlock.Length)
             {
+                if (m_BlockSemaphore.CurrentCount == 0 && IsClosed)
+                {
+                    EndOfStream = true;
+                    return null;
+                }
                 await m_BlockSemaphore.WaitAsync();
                 if (!m_Blocks.TryDequeue(out var cBlock))
                 {
                     throw new InvalidDataException("Semaphore released when no blocks were available.");
                 }
+
                 CurrentBlock?.Dispose();
                 CurrentBlock = cBlock;
             }
             return CurrentBlock;
         }
 
-        private MarshalAllocMemoryStream WaitForBlock()
+        private MarshalAllocMemoryStream? WaitForBlock()
         {
             if (CurrentBlock == null || CurrentBlock.Position >= CurrentBlock.Length)
             {
+                if (m_BlockSemaphore.CurrentCount == 0 && IsClosed)
+                {
+                    EndOfStream = true;
+                    return null;
+                }
                 m_BlockSemaphore.Wait();
                 if (!m_Blocks.TryDequeue(out var cBlock))
                 {
                     throw new InvalidDataException("Semaphore released when no blocks were available.");
                 }
+
                 CurrentBlock?.Dispose();
                 CurrentBlock = cBlock;
             }
@@ -105,17 +121,30 @@ namespace NewSocket.Protocals.NetSynced.Models
             while (count > read)
             {
                 var block = WaitForBlock();
+                if (block == null)
+                {
+                    return read;
+                }
                 var blockTransfer = Math.Min(block.RemainingLength, count - read);
                 var blockRead = block.Read(buffer, offset + read, (int)blockTransfer);
                 read += blockRead;
 
                 if (blockRead < blockTransfer)
                 {
+                    if (IsClosed && m_Blocks.IsEmpty)
+                    {
+                        EndOfStream = true;
+                    }
                     return read;
                 }
             }
+            if (IsClosed && m_Blocks.IsEmpty)
+            {
+                EndOfStream = true;
+            }
             return read;
         }
+
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
@@ -123,14 +152,26 @@ namespace NewSocket.Protocals.NetSynced.Models
             while (count > read)
             {
                 var block = await WaitForBlockAsync();
+                if (block == null)
+                {
+                    return read;
+                }
                 var blockTransfer = Math.Min(block.RemainingLength, count - read);
                 var blockRead = await block.ReadAsync(buffer, offset + read, (int)blockTransfer);
                 read += blockRead;
                 Position += read;
                 if (blockRead < blockTransfer)
                 {
+                    if (IsClosed && m_Blocks.IsEmpty)
+                    {
+                        EndOfStream = true;
+                    }
                     return read;
                 }
+            }
+            if (IsClosed && m_Blocks.IsEmpty)
+            {
+                EndOfStream = true;
             }
             return read;
         }
