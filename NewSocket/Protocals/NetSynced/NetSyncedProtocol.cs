@@ -11,7 +11,7 @@ namespace NewSocket.Protocals.NetSynced
 {
     public class NetSyncedProtocol : IMessageProtocal
     {
-        public byte ID { get; }
+        public byte ID => 2;
 
         private ConcurrentDictionary<ulong, NetSyncedStream> m_StreamsNetID = new ConcurrentDictionary<ulong, NetSyncedStream>();
         private ConcurrentDictionary<ulong, TaskCompletionSource<NetSyncedStream>> m_StreamAwaiters = new ConcurrentDictionary<ulong, TaskCompletionSource<NetSyncedStream>>();
@@ -27,6 +27,13 @@ namespace NewSocket.Protocals.NetSynced
         {
             if (m_StreamsNetID.TryGetValue(netID, out var stream))
             {
+                if (m_StreamAwaiters.TryGetValue(netID, out var handle2))
+                {
+                    if (!handle2.Task.IsCompleted)
+                    {
+                        handle2.SetResult(stream);
+                    }
+                }
                 return stream;
             }
 
@@ -81,11 +88,11 @@ namespace NewSocket.Protocals.NetSynced
 
             if (stream.UpBuffer != null)
             {
-                m_SocketClient.Enqueue(new NetSyncedUp(id, stream.UpBuffer));
+                m_SocketClient.Enqueue(new NetSyncedUp(id, stream.UpBuffer, readable, writable));
             }
             else
             {
-                m_SocketClient.Enqueue(new NetSyncedUp(id));
+                m_SocketClient.Enqueue(new NetSyncedUp(id, readable, writable));
             }
 
             return stream;

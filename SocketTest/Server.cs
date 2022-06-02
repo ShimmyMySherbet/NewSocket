@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using NewSocket.Core;
+using NewSocket.Models;
 using NewSocket.Protocals.RPC;
-using NewSocket.Security.Models;
-using NewSocket.Security.Protocols;
 
 namespace SocketTest
 {
@@ -16,11 +16,12 @@ namespace SocketTest
 
         public Server(Stream stream)
         {
-
-            Client = new RPCSocketClient(stream, RSAProtocol.CreateCertExchange());
+            Client = new RPCSocketClient(stream);
             Client.RegisterFrom(this);
 
             Client.onDisconnect += onClientDisconnect;
+
+            Directory.CreateDirectory("Files");
 
             Task.Run(async () =>
             {
@@ -33,8 +34,32 @@ namespace SocketTest
                     Console.WriteLine(ex.Message);
                     throw;
                 }
-
             });
+        }
+
+        [RPC]
+        private string[] GetFiles()
+        {
+            var files = Directory.GetFiles("Files");
+            Console.WriteLine($"[SERVER] available files: {files}");
+            return files;
+        }
+
+        [RPC]
+        private ulong GetFile(string path)
+        {
+            var stream = Client.CreateStream(ENetSyncedMode.ReadWrite);
+            ThreadPool.QueueUserWorkItem(async (_) =>
+            {
+                using (stream)
+                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read))
+                {
+                    await Task.Delay(2000);
+                    await file.CopyToAsync(stream);
+                    await file.FlushAsync();
+                }
+            });
+            return stream.NetSyncedID;
         }
 
         private void onClientDisconnect(NewSocket.Models.DisconnectContext context)
@@ -67,7 +92,6 @@ namespace SocketTest
         {
             Console.WriteLine($"[Server][H1][{Math.Round(DateTime.Now.Subtract(sent).Ticks / 10000d, 2)}ms ago] {a}, {b}, {c}");
         }
-
 
         [RPC]
         public async Task DoSomething()

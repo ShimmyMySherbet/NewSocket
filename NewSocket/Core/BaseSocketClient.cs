@@ -1,17 +1,16 @@
-﻿using NewSocket.Interfaces;
-using NewSocket.Models;
-using NewSocket.Models.Exceptions;
-using NewSocket.Protocals.RPC.Models.Delegates;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using NewSocket.Interfaces;
+using NewSocket.Models;
+using NewSocket.Models.Exceptions;
+using NewSocket.Protocals.RPC.Models.Delegates;
 
 // TODO: Rename this project to something else like god dam, what a fucking stupid name "NewSocket", how origonal and creative
 
@@ -19,6 +18,7 @@ namespace NewSocket.Core
 {
     public class BaseSocketClient : ISocketClient
     {
+        private IDAssigner IDAssigner { get; } = new IDAssigner();
         public string Name { get; set; } = "Socket"; // for debug logging
         public Stream? UpStream { get; private set; }
         public Stream? DownStream { get; private set; }
@@ -136,7 +136,6 @@ namespace NewSocket.Core
 
         protected void Stop()
         {
-
             if (!AllowSocketReuse)
             {
                 Dead = true;
@@ -246,6 +245,11 @@ namespace NewSocket.Core
                     //Cout.Write($"{Name} Up", "Get Next Message");
 
                     var message = await m_MessageScheduler.GetNext(token);
+
+                    if (!message.WantsToWrite)
+                    {
+                        continue;
+                    }
                     //Cout.Write($"{Name} Up", $"Got message of ID {message.MessageID}; write type byte");
                     network.WriteByte(message.MessageType);
                     //Cout.Write($"{Name} Up", "Write Message ID");
@@ -272,7 +276,6 @@ namespace NewSocket.Core
             {
                 await HandleDisconnect(true, ex, EChannelDirection.Up);
             }
-
         }
 
         /// <summary>
@@ -291,13 +294,10 @@ namespace NewSocket.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining /*| MethodImplOptions.AggressiveOptimization*/)]
         protected async Task MessageDownload(Stream network, CancellationToken token)
         {
-
             try
             {
                 while (!token.IsCancellationRequested)
                 {
-                   
-
                     using (var headerStream = new MemoryStream())
                     {
                         //while (!token.IsCancellationRequested)
@@ -308,7 +308,6 @@ namespace NewSocket.Core
                         token.ThrowIfCancellationRequested();
                         var messageID = await network.NetReadUInt64();
 
-
                         //Cout.Write($"{Name} down", $"Next Message ID: {messageID}");
 
                         var newMessage = m_Cache.IsNewMessage(messageID);
@@ -317,6 +316,10 @@ namespace NewSocket.Core
                         IMessageDown? down;
                         if (newMessage)
                         {
+                            if (messageType == 0)
+                            {
+                                Console.WriteLine("0");
+                            }
                             down = await m_Protocals[messageType].CreateDown(messageID, this);
                             m_Cache.Register(down);
                         }
@@ -360,7 +363,15 @@ namespace NewSocket.Core
             {
                 await HandleDisconnect(true, ex, EChannelDirection.Down);
             }
+        }
 
+        public ulong AssignMessageID()
+        {
+            return IDAssigner.AssignID();
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

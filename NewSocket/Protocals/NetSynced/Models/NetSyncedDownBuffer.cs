@@ -7,7 +7,7 @@ using NewSocket.Models;
 
 namespace NewSocket.Protocals.NetSynced.Models
 {
-    public class NetSyncedDownBuffer : Stream
+    public class NetSyncedDownBuffer : Stream, IDisposable
     {
         private SemaphoreSlim m_BlockSemaphore = new(0);
         private ConcurrentQueue<MarshalAllocMemoryStream> m_Blocks = new();
@@ -19,9 +19,10 @@ namespace NewSocket.Protocals.NetSynced.Models
         public override long Length => -1;
         public override long Position { get; set; }
 
-        public bool IsClosed { get; set; }
+        public bool IsClosed { get; set; } = false;
+        private CancellationTokenSource m_TokenSource = new CancellationTokenSource();
 
-        public bool EndOfStream { get; private set; } = false;
+        public bool EndOfStream => (CurrentBlock != null ? CurrentBlock.Length == 0 : true) &&m_Blocks.Count == 0 && IsClosed;
 
         public void SetStreamRedirect(Stream stream)
         {
@@ -30,6 +31,15 @@ namespace NewSocket.Protocals.NetSynced.Models
                 throw new InvalidOperationException("Stream is already being redirected.");
             }
             RedirectStream = stream;
+        }
+
+
+        public new void Dispose()
+        {
+            IsClosed = true;
+            RedirectStream?.Dispose();
+            m_TokenSource.Cancel();
+            m_TokenSource.Dispose();
         }
 
         public async Task ReceiveBlockAsync(Stream network, int blockLength)
@@ -79,10 +89,14 @@ namespace NewSocket.Protocals.NetSynced.Models
             {
                 if (m_BlockSemaphore.CurrentCount == 0 && IsClosed)
                 {
-                    EndOfStream = true;
                     return null;
                 }
-                await m_BlockSemaphore.WaitAsync();
+                await m_BlockSemaphore.WaitAsync(m_TokenSource.Token);
+                if (m_TokenSource.Token.IsCancellationRequested)
+                {
+                    return null;
+                }
+
                 if (!m_Blocks.TryDequeue(out var cBlock))
                 {
                     throw new InvalidDataException("Semaphore released when no blocks were available.");
@@ -100,10 +114,14 @@ namespace NewSocket.Protocals.NetSynced.Models
             {
                 if (m_BlockSemaphore.CurrentCount == 0 && IsClosed)
                 {
-                    EndOfStream = true;
                     return null;
                 }
-                m_BlockSemaphore.Wait();
+                m_BlockSemaphore.Wait(m_TokenSource.Token);
+                if (m_TokenSource.Token.IsCancellationRequested)
+                {
+                    return null;
+                }
+
                 if (!m_Blocks.TryDequeue(out var cBlock))
                 {
                     throw new InvalidDataException("Semaphore released when no blocks were available.");
@@ -133,15 +151,11 @@ namespace NewSocket.Protocals.NetSynced.Models
                 {
                     if (IsClosed && m_Blocks.IsEmpty)
                     {
-                        EndOfStream = true;
                     }
                     return read;
                 }
             }
-            if (IsClosed && m_Blocks.IsEmpty)
-            {
-                EndOfStream = true;
-            }
+     
             return read;
         }
 
@@ -164,14 +178,12 @@ namespace NewSocket.Protocals.NetSynced.Models
                 {
                     if (IsClosed && m_Blocks.IsEmpty)
                     {
-                        EndOfStream = true;
                     }
                     return read;
                 }
             }
             if (IsClosed && m_Blocks.IsEmpty)
             {
-                EndOfStream = true;
             }
             return read;
         }

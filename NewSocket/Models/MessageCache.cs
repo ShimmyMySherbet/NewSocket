@@ -9,8 +9,10 @@ namespace NewSocket.Models
     {
         private IDictionary<ulong, IMessageDown> m_Downloads = new ConcurrentDictionary<ulong, IMessageDown>();
         private IDictionary<ulong, IMessageUp> m_Uploads = new ConcurrentDictionary<ulong, IMessageUp>();
+
         private ulong m_DownIDIndex = 0;
         private bool m_DownStarted = false;
+
 
         public bool TryGetDownload(ulong messageID, out IMessageDown? down)
         {
@@ -71,7 +73,8 @@ namespace NewSocket.Models
 
         public bool IsNewMessage(ulong messageID)
         {
-            return m_DownStarted ? messageID > m_DownIDIndex : true;
+            return !m_Downloads.ContainsKey(messageID);
+            //return m_DownStarted ? messageID > m_DownIDIndex : true;
         }
     }
 }

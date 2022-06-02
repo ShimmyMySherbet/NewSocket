@@ -3,6 +3,8 @@ using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using NewSocket.Models;
+using NewSocket.Protocals.NetSynced;
+using NewSocket.Protocals.NetSynced.Models;
 using NewSocket.Protocals.RPC;
 using NewSocket.Protocals.RPC.Auto;
 using NewSocket.Security.Interfaces;
@@ -12,6 +14,7 @@ namespace NewSocket.Core
     public class RPCSocketClient : BaseSocketClient
     {
         public RPCProtocal RPC { get; }
+        public NetSyncedProtocol NetSynced { get; }
         public ISecurityProtocal? Security { get; }
 
         public bool Authenticated => Security == null || Security.Authenticated;
@@ -22,6 +25,7 @@ namespace NewSocket.Core
         {
             UnderlyingNetwork = network;
             RPC = RegisterProtocal(new RPCProtocal(this));
+            NetSynced = RegisterProtocal(new NetSyncedProtocol(this));
             Security = protocol;
             if (Security != null)
             {
@@ -39,7 +43,8 @@ namespace NewSocket.Core
                         SetStream(ESocketStream.Down, down);
                     }
                 }
-            } else
+            }
+            else
             {
                 SetStream(ESocketStream.Both, network);
             }
@@ -75,6 +80,34 @@ namespace NewSocket.Core
             {
                 await Security.OnSocketStarted(this);
             }
+        }
+
+        public NetSyncedStream CreateStream(ENetSyncedMode mode)
+        {
+            bool readable = false;
+            bool writable = false;
+            switch(mode)
+            {
+                case ENetSyncedMode.Read:
+                    readable = true;
+                    break;
+                case ENetSyncedMode.Write:
+                    writable = true;
+                    break;
+                case ENetSyncedMode.ReadWrite:
+                    readable = true;
+                    writable = true;
+                    break;
+                default:
+                    throw new ArgumentException($"Invalid mode for this networked stream: {mode}");
+            }
+
+            return NetSynced.CreateStream(readable, writable);
+        }
+
+        public async Task<NetSyncedStream> GetStreamAsync(ulong netSyncedID)
+        {
+            return await NetSynced.GetStream(netSyncedID);
         }
 
         public override void Start()

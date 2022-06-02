@@ -11,5 +11,7 @@ namespace NewSocket.Interfaces
 
         void Enqueue(IMessageUp message);
 
+        ulong AssignMessageID();
+
     }
 }

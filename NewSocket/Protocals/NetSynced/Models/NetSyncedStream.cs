@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,8 @@ namespace NewSocket.Protocals.NetSynced.Models
         {
             CanRead = down != null;
             CanWrite = up != null;
+            UpBuffer = up;
+            DownBuffer = down;
             NetSyncedID = netID;
         }
 
@@ -65,6 +68,7 @@ namespace NewSocket.Protocals.NetSynced.Models
             if (UpBuffer != null)
             {
                 UpBuffer.Write(buffer, offset, count);
+                return;
             }
             throw new NotSupportedException("This NetSyncedStream does not support reading.");
         }
@@ -74,13 +78,15 @@ namespace NewSocket.Protocals.NetSynced.Models
             if (UpBuffer != null)
             {
                 await UpBuffer.WriteAsync(buffer, offset, count);
+                return;
             }
             throw new NotSupportedException("This NetSyncedStream does not support reading.");
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
-
+            UpBuffer?.Dispose();
+            DownBuffer?.Dispose();
         }
 
     }

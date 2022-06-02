@@ -28,13 +28,17 @@ namespace NewSocket.Protocals.NetSynced
         {
             var type = stream.NetReadByte();
 
-            if (type == 0)
+            if (type == 1)
             {
                 var NetSyncedID = await stream.NetReadUInt64();
                 var writable = await stream.NetReadBool();
                 var readable = await stream.NetReadBool();
                 NetSynced.GetOrCreateDown(NetSyncedID, readable, writable);
                 return false;
+            }
+            else if (type == 2)
+            {
+                return true;
             }
             else
             {

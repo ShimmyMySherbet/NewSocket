@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using NewSocket.Interfaces;
 using NewSocket.Protocals.NetSynced.Models;
@@ -21,9 +22,7 @@ namespace NewSocket.Protocals.NetSynced
         public bool Writable { get; }
         public bool Readable { get; }
 
-        public void Dispose()
-        {
-        }
+
 
         public async Task<bool> Write(Stream stream)
         {
@@ -34,18 +33,19 @@ namespace NewSocket.Protocals.NetSynced
                 await stream.Write(Readable);
                 await stream.Write(Writable);
                 IsInited = true;
+
                 return UpBuffer == null;
+            }
+            else if (UpBuffer == null)
+            {
+                await stream.Write(2);
+                return true;
             }
             else
             {
                 stream.WriteByte(0);
             }
 
-            if (UpBuffer == null)
-            {
-                await stream.Write(false);
-                return true;
-            }
 
             await stream.Write(NetSyncedID);
 
@@ -72,16 +72,26 @@ namespace NewSocket.Protocals.NetSynced
             return false;
         }
 
-        public NetSyncedUp(ulong msgID, NetSyncedUpBuffer up)
+        public void Dispose()
         {
-            MessageID = msgID;
+        }
+
+        public NetSyncedUp(ulong netSyncedID, NetSyncedUpBuffer up, bool r, bool w)
+        {
+            Readable = r;
+            Writable = w;
+            MessageID = netSyncedID;
+            NetSyncedID = netSyncedID;
             UpBuffer = up;
         }
 
-        public NetSyncedUp(ulong msgID)
+        public NetSyncedUp(ulong netSyncedID, bool r, bool w)
         {
-            MessageID = msgID;
+            Readable = r;
+            Writable = w;
+            MessageID = netSyncedID;
             UpBuffer = null;
+            NetSyncedID = netSyncedID;
         }
     }
 }

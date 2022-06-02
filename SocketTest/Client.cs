@@ -1,11 +1,11 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using NewSocket.Core;
 using NewSocket.Models;
 using NewSocket.Protocals.RPC;
-using NewSocket.Security.Protocols;
 
 namespace SocketTest
 {
@@ -18,6 +18,12 @@ namespace SocketTest
     [RPC("GetTime")]
     public delegate Task<DateTime> GetTimeRPC();
 
+    [RPC("GetFiles")]
+    public delegate Task<string[]> GetFilesRPC();
+
+    [RPC("GetFile")]
+    public delegate Task<ulong> OpenFileRPC(string path);
+
     public class Client
     {
         public RPCSocketClient Server;
@@ -27,21 +33,26 @@ namespace SocketTest
         public GetNameRPC GetName;
         public GetTimeRPC GetTime;
 
+        public GetFilesRPC GetFiles;
+        public OpenFileRPC OpenFile;
+
         public Client(Stream stream)
         {
-            //var sec = new AESPresharedKeyProtocol("pas");
-
-            Server = new RPCSocketClient(stream, RSAProtocol.CreateCertExchange());
+            Server = new RPCSocketClient(stream);
 
             Server.onDisconnect += onDisconnect;
             Server.RegisterFrom(this);
 
+            Directory.CreateDirectory("Local");
             Login = Server.GetRPC<LoginRPC>();
 
             Login = Server.GetRPC<LoginRPC>("Login");
 
             GetName = Server.GetRPC<GetNameRPC>();
             GetTime = Server.GetRPC<GetTimeRPC>();
+
+            GetFiles = Server.GetRPC<GetFilesRPC>();
+            OpenFile = Server.GetRPC<OpenFileRPC>();
 
             ThreadPool.QueueUserWorkItem(async (_) =>
             {
@@ -66,36 +77,45 @@ namespace SocketTest
 
         public async Task Run()
         {
-            Console.WriteLine("Logging in...");
-            var pass = await Login("Username", "Password");
-            if (pass)
-            {
-                Console.WriteLine("Logged in!");
-            }
+            var files = await GetFiles();
 
-            Console.WriteLine($"Remote Name: {await GetName()}");
-            Console.WriteLine($"Remote Name: {(await GetTime()).ToShortTimeString()}");
+            Console.WriteLine($"[Client] Files available: {files.Length}");
 
-            try
+            foreach (var f in files)
             {
-                for (int i = 0; i < 100; i++)
+                Console.WriteLine($"[Client] {f}");
+
+                var localName = Path.GetFileName(f);
+
+                var localPath = Path.Combine("Local", localName);
+
+                var netID = await OpenFile(f);
+
+                Console.WriteLine("Opening stream...");
+                var downloadStream = await Server.GetStreamAsync(netID);
+                Console.WriteLine("Downloading file...");
+                using (downloadStream)
+                using(var lcFile = new FileStream(localPath, FileMode.Create, FileAccess.Write))
                 {
-                    await Server.InvokeAsync("H1", DateTime.Now);
-                    await Server.InvokeAsync("H2", DateTime.Now, $"A{i}");
-                    await Server.InvokeAsync("H3", DateTime.Now, $"A{i}", $"X{i}");
-                    await Server.InvokeAsync("H4", DateTime.Now, $"A{i}", $"X{i}", $"2x{i * 2}");
+                    Console.WriteLine("Transfer block...");
+                    var buffer = new byte[1024];
+
+                    while (true)
+                    {
+                        var c = await downloadStream.ReadAsync(buffer, 0, 1024);
+                        
+                        if (c == 0)
+                        {
+                            break;
+                        }
+                        lcFile.Write(buffer, 0, c);
+                    }
+
+
+                    await lcFile.FlushAsync();
                 }
+                Console.WriteLine("Done!");
             }
-            catch (Exception)
-            {
-                throw;
-            }
-
-            Console.ReadLine();
-
-            Console.WriteLine("Disconnecting...");
-            Server.Disconnect();
-            Console.WriteLine("Disconnected.");
         }
 
         [RPC]
