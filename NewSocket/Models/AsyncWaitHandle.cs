@@ -20,13 +20,25 @@ namespace NewSocket.Models
         private CancellationTokenSource m_TokenSource = new CancellationTokenSource();
 
         private bool Disposed = false;
+        private int m_Generation = 0;
 
         public AsyncWaitHandle()
         {
+            RunTaskContinue();
+        }
+
+        private void RunTaskContinue()
+        {
+            var myGeneration = m_Generation;
             m_Task.Task.ContinueWith((Task) =>
             {
                 m_TokenSource.Cancel();
-                Result = Task.Result;
+
+                if (m_Generation > myGeneration)
+                {
+                    return;
+                }
+
                 Complete = true;
                 if (Task.IsFaulted)
                 {
@@ -76,6 +88,20 @@ namespace NewSocket.Models
                 m_TokenSource.Dispose();
             }
         }
+
+        public void Reset()
+        {
+            if (Disposed || m_Task.Task.IsCompleted)
+            {
+                m_Generation++;
+                Complete = false;
+                Exception = null;
+                m_Task = new TaskCompletionSource<T>();
+                m_TokenSource?.Dispose();
+                m_TokenSource = new CancellationTokenSource();
+                Disposed = false;
+            }
+        }
     }
 
     public class AsyncWaitHandle : IDisposable
@@ -91,12 +117,25 @@ namespace NewSocket.Models
         private TaskCompletionSource<object?> m_Task = new TaskCompletionSource<object?>();
         private CancellationTokenSource m_TokenSource = new CancellationTokenSource();
         private bool Disposed = false;
+        private int m_Generation = 0;
 
         public AsyncWaitHandle()
         {
+            RunTaskContinue();
+        }
+
+        private void RunTaskContinue()
+        {
+            var myGeneration = m_Generation;
             m_Task.Task.ContinueWith((Task) =>
             {
                 m_TokenSource.Cancel();
+
+                if (m_Generation > myGeneration)
+                {
+                    return;
+                }
+
                 Complete = true;
                 if (Task.IsFaulted)
                 {
@@ -136,6 +175,20 @@ namespace NewSocket.Models
         {
             m_Task.SetCanceled();
             m_TokenSource.Cancel();
+        }
+
+        public void Reset()
+        {
+            if (Disposed || m_Task.Task.IsCompleted)
+            {
+                m_Generation++;
+                Complete = false;
+                Exception = null;
+                m_Task = new TaskCompletionSource<object?>();
+                m_TokenSource?.Dispose();
+                m_TokenSource = new CancellationTokenSource();
+                Disposed = false;
+            }
         }
 
         public void Dispose()

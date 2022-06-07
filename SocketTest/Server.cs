@@ -52,15 +52,15 @@ namespace SocketTest
             ThreadPool.QueueUserWorkItem(async (_) =>
             {
 
-                if (stream.UpBuffer == null)
+                using (stream)
+                using(var file = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
+                    Console.WriteLine("[Server] Syncing");
+                    stream.ReplaceUpstream(file);
                     await stream.StartAsync();
-                    return;
+                    await stream.FlushAsync();
+                    Console.WriteLine("[Server] synced");
                 }
-
-                stream.UpBuffer.SetSourceReplacement(new FileStream(path, FileMode.Open, FileAccess.Read));
-                await stream.StartAsync();
-                Console.WriteLine("[Server] synced");
             });
             return stream.NetSyncedID;
         }

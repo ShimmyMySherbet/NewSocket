@@ -142,10 +142,10 @@ namespace NewSocket.Protocals.NetSynced
                 {
                     UpBuffer.Dispose();
                     m_ManualClose = true;
-
-
+                    return false;
                 }
 
+                UpBuffer.MarkBlockWritten(blockSize);
                 return false;
             }
 
@@ -161,7 +161,7 @@ namespace NewSocket.Protocals.NetSynced
             block.Position = 0;
             await block.CopyToAsync(stream);
             block.Dispose();
-
+            UpBuffer.MarkBlockWritten(block.Length);
             return false;
         }
 

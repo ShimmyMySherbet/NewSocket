@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -92,19 +91,14 @@ namespace SocketTest
                 var netID = await OpenFile(f);
 
                 Console.WriteLine("Opening stream...");
-                var downloadStream = await Server.GetStreamAsync(netID);
-                Console.WriteLine("Downloading file...");
-
-                if (downloadStream.DownBuffer == null)
-                    continue;
-
-                await downloadStream.DownBuffer.SetStreamRedirect(new FileStream(localPath, FileMode.Create, FileAccess.Write));
-
-                await downloadStream.StartAsync();
-                Console.WriteLine("[Client] synced");
-
-
-
+                using (var outputStream = new FileStream(localPath, FileMode.Create, FileAccess.Write))
+                using (var downloadStream = await Server.GetStreamAsync(netID, outputStream))
+                {
+                    Console.WriteLine("Downloading file...");
+                    await downloadStream.StartAsync();
+                    await downloadStream.FlushAsync();
+                    Console.WriteLine("[Client] synced");
+                }
             }
         }
 

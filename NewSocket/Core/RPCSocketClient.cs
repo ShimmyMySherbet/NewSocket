@@ -86,18 +86,21 @@ namespace NewSocket.Core
         {
             bool readable = false;
             bool writable = false;
-            switch(mode)
+            switch (mode)
             {
                 case ENetSyncedMode.Read:
                     readable = true;
                     break;
+
                 case ENetSyncedMode.Write:
                     writable = true;
                     break;
+
                 case ENetSyncedMode.ReadWrite:
                     readable = true;
                     writable = true;
                     break;
+
                 default:
                     throw new ArgumentException($"Invalid mode for this networked stream: {mode}");
             }
@@ -105,9 +108,18 @@ namespace NewSocket.Core
             return NetSynced.CreateStream(readable, writable);
         }
 
-        public async Task<NetSyncedStream> GetStreamAsync(ulong netSyncedID)
+        /// <summary>
+        /// Gets a NetSyncedStream by it's NetID. Optionally replacing the NetSyncedStream's downstream.
+        /// </summary>
+        /// <param name="downStream">When specified, the NetSyncedStream's downstream will be replaced with this value</param>
+        public async Task<NetSyncedStream> GetStreamAsync(ulong netSyncedID, Stream? downStream = null)
         {
-            return await NetSynced.GetStream(netSyncedID);
+            var stream = await NetSynced.GetStream(netSyncedID);
+            if (downStream != null && stream.DownBuffer?.RedirectStream != downStream)
+            {
+                await stream.ReplaceDownstream(downStream);
+            }
+            return stream;
         }
 
         public override void Start()

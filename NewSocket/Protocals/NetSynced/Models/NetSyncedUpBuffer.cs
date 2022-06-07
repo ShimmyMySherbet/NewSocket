@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using NewSocket.Models;
 
 namespace NewSocket.Protocals.NetSynced.Models
@@ -17,6 +18,17 @@ namespace NewSocket.Protocals.NetSynced.Models
         private long m_position = 0;
 
         public bool IsSourceReplaced => m_SourceReplacement != null;
+        private AsyncWaitHandle m_FlushWait = new AsyncWaitHandle();
+
+        public new async Task FlushAsync()
+        {
+            await m_FlushWait.WaitAsync();
+        }
+
+        public override void Flush()
+        {
+            m_FlushWait.Wait();
+        }
 
         public override long Position
         {
@@ -70,8 +82,18 @@ namespace NewSocket.Protocals.NetSynced.Models
             m_SourceReplacement = stream;
         }
 
-        public override void Flush()
+        public void MarkBlockWritten(long written)
         {
+            if (IsSourceReplaced)
+            {
+                if (written == 0)
+                {
+                    m_FlushWait.Release();
+                } else
+                {
+                    m_FlushWait.Reset();
+                }
+            }
         }
 
         public MarshalAllocMemoryStream? GetBlock()
@@ -122,12 +144,14 @@ namespace NewSocket.Protocals.NetSynced.Models
             var netBuffer = new MarshalAllocMemoryStream(count);
             netBuffer.Write(buffer, offset, count);
             netBuffer.Position = 0;
+            m_FlushWait.Reset();
             m_Blocks.Enqueue(netBuffer);
         }
 
         public new void Dispose()
         {
             IsClosed = true;
+            m_FlushWait.Release();
         }
 
         public NetSyncedUpBuffer(Stream? source = null, int bufferSize = 1024 * 1024)

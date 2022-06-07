@@ -47,12 +47,12 @@ namespace NewSocket.Protocals.NetSynced.Models
             m_LocalStateWritten = true;
             m_StateWait.Release();
         }
+
         public void MarkRemoteReady()
         {
             RemoteClientReady = true;
             m_RemoteReadyWait.Release();
         }
-
 
         /// <summary>
         /// Alternate to <seealso cref="StartAsync"/> or <seealso cref="Start"/>. Starts the socket non-blocking
@@ -94,12 +94,37 @@ namespace NewSocket.Protocals.NetSynced.Models
 
         public override void Flush()
         {
+            UpBuffer?.Flush();
+        }
+
+        public new async Task FlushAsync()
+        {
+            if (UpBuffer != null)
+            {
+                await UpBuffer.FlushAsync();
+            }
         }
 
         public async Task<NetSyncedStream> WaitForInitAsync()
         {
             await m_InitWait.WaitAsync();
             return this;
+        }
+
+        public async Task ReplaceDownstream(Stream stream)
+        {
+            if (DownBuffer != null)
+            {
+                await DownBuffer.SetStreamRedirect(stream);
+            }
+        }
+
+        public void ReplaceUpstream(Stream stream)
+        {
+            if (UpBuffer != null)
+            {
+                UpBuffer.SetSourceReplacement(stream);
+            }
         }
 
         public override int Read(byte[] buffer, int offset, int count)

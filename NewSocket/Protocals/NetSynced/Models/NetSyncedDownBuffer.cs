@@ -55,6 +55,19 @@ namespace NewSocket.Protocals.NetSynced.Models
             RedirectStream = stream;
         }
 
+        /// <summary>
+        /// Alternate to <seealso cref="SetStreamRedirect(Stream)"/> that doesn't flush buffered data
+        /// </summary>
+        public void SetDownstream(Stream stream)
+        {
+            if (RedirectStream != null)
+            {
+                throw new InvalidOperationException("Stream is already being redirected.");
+            }
+            RedirectStream = stream;    
+        }
+
+
         public new void Dispose()
         {
             IsClosed = true;
