@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace NewSocket.ServerClient
 {
-    public class NewSocketServerHost
+    public abstract class NewSocketServerHost
     {
         public TcpListener TcpListener { get; }
         private CancellationTokenSource m_Source;
@@ -36,7 +36,7 @@ namespace NewSocket.ServerClient
             m_Source.Cancel();
         }
 
-        private async Task AcceptClientLoop()
+        protected async Task AcceptClientLoop()
         {
             while (!CancellationToken.IsCancellationRequested)
             {
@@ -52,12 +52,7 @@ namespace NewSocket.ServerClient
             }
         }
 
-        protected virtual async Task HandleNewClient(TcpClient client)
-        {
-
-
-
-        }
+        public abstract Task HandleNewClient(TcpClient client);
 
 
         protected virtual void HandleAcceptLoopException(SocketException ex)

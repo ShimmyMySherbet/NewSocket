@@ -94,27 +94,17 @@ namespace SocketTest
                 Console.WriteLine("Opening stream...");
                 var downloadStream = await Server.GetStreamAsync(netID);
                 Console.WriteLine("Downloading file...");
-                using (downloadStream)
-                using(var lcFile = new FileStream(localPath, FileMode.Create, FileAccess.Write))
-                {
-                    Console.WriteLine("Transfer block...");
-                    var buffer = new byte[1024];
 
-                    while (true)
-                    {
-                        var c = await downloadStream.ReadAsync(buffer, 0, 1024);
-                        
-                        if (c == 0)
-                        {
-                            break;
-                        }
-                        lcFile.Write(buffer, 0, c);
-                    }
+                if (downloadStream.DownBuffer == null)
+                    continue;
+
+                await downloadStream.DownBuffer.SetStreamRedirect(new FileStream(localPath, FileMode.Create, FileAccess.Write));
+
+                await downloadStream.StartAsync();
+                Console.WriteLine("[Client] synced");
 
 
-                    await lcFile.FlushAsync();
-                }
-                Console.WriteLine("Done!");
+
             }
         }
 

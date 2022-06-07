@@ -12,63 +12,156 @@ namespace NewSocket.Protocals.NetSynced
         public byte MessageType => 2;
         public bool Complete { get; private set; }
 
-        public ulong NetSyncedID { get; private set; }
+        public ulong NetSyncedID => Stream.NetSyncedID;
 
-        public NetSyncedUpBuffer? UpBuffer { get; }
-        public bool WantsToWrite => (UpBuffer?.HasBlocks ?? false) || (UpBuffer?.IsClosed ?? false) || !IsInited;
+        public NetSyncedStream Stream { get; }
+        public NetSyncedUpBuffer? UpBuffer => Stream?.UpBuffer;
+        public bool WantsToWrite => ((UpBuffer?.HasAvailableData ?? false) && Stream.Ready) || Closed || !IsInited || Stream.NeedsToWriteSync;
 
         public bool IsInited { get; private set; } = false;
 
-        public bool Writable { get; }
-        public bool Readable { get; }
+        public bool Writable => Stream.UpBuffer != null;
+        public bool Readable => Stream.DownBuffer != null;
 
+        private bool m_ManualClose = false;
 
+        public bool Closed => (UpBuffer?.IsClosed ?? false) || m_ManualClose;
+
+        /*
+         * [NetSyncedID] : ulong
+         *
+         * [Type] : Byte
+         *
+         * <Type>
+         *      0: Init Message
+         *        - [Readable] : bool
+         *        - [Writable] : bool
+         *        - [RequireStart] : bool
+         *        #return <false>
+         *
+         *      1: Data Block
+         *        - [Data Length] : int
+         *        - [Data Block] : Bytes(Data Length)
+         *        #return <false>
+         *
+         *      2: Stream Close
+         *        #return <true>
+         *      
+         *      3: Stream Start
+         *        #return <false>
+         *      
+         *      4: Invalid State
+         *        #return <false>
+         *        
+         *      5+: # Stream-Desync
+         *
+         *
+         */
+        private byte[] Buffer = new byte[0];
 
         public async Task<bool> Write(Stream stream)
         {
-            if (!IsInited)
-            {
-                stream.WriteByte(1);
-                await stream.Write(NetSyncedID);
-                await stream.Write(Readable);
-                await stream.Write(Writable);
-                IsInited = true;
-
-                return UpBuffer == null;
-            }
-            else if (UpBuffer == null)
-            {
-                await stream.Write(2);
-                return true;
-            }
-            else
-            {
-                stream.WriteByte(0);
-            }
-
-
             await stream.Write(NetSyncedID);
 
-            var block = UpBuffer.GetBlock();
-
-            if (block == null && UpBuffer.IsClosed)
+            if (!IsInited)
             {
-                await stream.Write(false);
-                return true;
-            }
-            else
-            {
-                await stream.Write(true);
-            }
-            if (block == null || block.Length == 0)
-            {
-                await stream.Write((long)0);
+                // Init Message
+                stream.WriteByte(0);
+                await stream.Write(Readable);
+                await stream.Write(Writable);
+                await stream.Write(Stream.RequireSync);
+                IsInited = true;
+                Stream.MarkInitComplete();
                 return false;
             }
 
-            await block.Write(block.Length);
+
+            if (Stream.NeedsToWriteSync)
+            {
+                // State
+                stream.WriteByte(3);
+                Stream.MarkStateWritten();
+                return false;
+            }
+
+            var bufferHasBlocks = UpBuffer != null && (UpBuffer.IsSourceReplaced ? !m_ManualClose : UpBuffer.HasAvailableData);
+
+            if (Closed && !bufferHasBlocks)
+            {
+                // Close Message
+                stream.WriteByte(2);
+                return true;
+            }
+
+            if (UpBuffer == null)
+            {
+                // Invalid State
+                stream.WriteByte(4);
+                return false;
+            }
+
+            // Data Block
+
+            stream.WriteByte(1);
+
+            // Read from source
+            if (UpBuffer.SourceReplacement != null)
+            {
+                if (Buffer.Length != UpBuffer.BufferSize)
+                {
+                    Buffer = new byte[UpBuffer.BufferSize]; // Re-use buffer to reduce memory pressure
+                }
+
+                int blockSize;
+
+                try
+                {
+                    blockSize = await UpBuffer.SourceReplacement.ReadAsync(Buffer, 0, Buffer.Length);
+                }
+                catch (Exception)
+                {
+                    await stream.Write((int)0);
+                    UpBuffer.Dispose();
+                    m_ManualClose = true;
+                    return false;
+                }
+
+
+                await stream.Write((int)blockSize);
+
+                if (blockSize == 0)
+                {
+                    UpBuffer.Dispose();
+                    m_ManualClose = true;
+                    return false;
+                }
+
+                await stream.WriteAsync(Buffer, 0, blockSize);
+
+                if (blockSize < Buffer.Length)
+                {
+                    UpBuffer.Dispose();
+                    m_ManualClose = true;
+
+
+                }
+
+                return false;
+            }
+
+            var block = UpBuffer.GetBlock();
+
+            if (block == null)
+            {
+                await stream.Write((int)0);
+                return false;
+            }
+            await stream.Write((int)block.Length);
+
+            block.Position = 0;
             await block.CopyToAsync(stream);
             block.Dispose();
+
             return false;
         }
 
@@ -76,22 +169,10 @@ namespace NewSocket.Protocals.NetSynced
         {
         }
 
-        public NetSyncedUp(ulong netSyncedID, NetSyncedUpBuffer up, bool r, bool w)
+        public NetSyncedUp(NetSyncedStream stream, bool needsInit = true)
         {
-            Readable = r;
-            Writable = w;
-            MessageID = netSyncedID;
-            NetSyncedID = netSyncedID;
-            UpBuffer = up;
-        }
-
-        public NetSyncedUp(ulong netSyncedID, bool r, bool w)
-        {
-            Readable = r;
-            Writable = w;
-            MessageID = netSyncedID;
-            UpBuffer = null;
-            NetSyncedID = netSyncedID;
+            Stream = stream;
+            IsInited = !needsInit;
         }
     }
 }

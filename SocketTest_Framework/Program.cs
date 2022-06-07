@@ -134,14 +134,6 @@ namespace SocketTest_Framework
             Console.WriteLine("UpdateRan");
         }
 
-        [RPC]
-        public async Task RunUpdate2()
-        {
-        }
-
-        public async Task RunAsync()
-        {
-        }
     }
 
     public class Client
@@ -172,12 +164,14 @@ namespace SocketTest_Framework
             RPC.GetRPC<vd>("dd");
         }
 
-        public async Task RunAsync()
+        public Task RunAsync()
         {
             var n = GetName();
 
             Console.WriteLine($"Name: {n}");
             Update();
+
+            return Task.CompletedTask;
         }
     }
 }

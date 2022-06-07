@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace NewSocket.Models
 {
     // Wrapper for TaskCompletionSource
-    public class AsyncWaitHandle<T>
+    public class AsyncWaitHandle<T> : IDisposable
     {
         public T? Result { get; private set; }
         public bool Complete { get; private set; }
@@ -14,10 +14,12 @@ namespace NewSocket.Models
         /// <summary>
         /// Cancels on completion of task, or on task cancellation.
         /// </summary>
-        public CancellationToken Token => m_TokenSource.Token;
+        public CancellationToken Token => Disposed ? new CancellationToken(true) : m_TokenSource.Token;
 
         private TaskCompletionSource<T> m_Task = new TaskCompletionSource<T>();
         private CancellationTokenSource m_TokenSource = new CancellationTokenSource();
+
+        private bool Disposed = false;
 
         public AsyncWaitHandle()
         {
@@ -31,7 +33,6 @@ namespace NewSocket.Models
                     if (Task.Exception != null)
                     {
                         Exception = Task.Exception.GetBaseException();
-
                     }
                     else
                     {
@@ -66,9 +67,18 @@ namespace NewSocket.Models
             m_Task.SetCanceled();
             m_TokenSource.Cancel();
         }
+
+        public void Dispose()
+        {
+            if (!Disposed)
+            {
+                Disposed = true;
+                m_TokenSource.Dispose();
+            }
+        }
     }
 
-    public class AsyncWaitHandle
+    public class AsyncWaitHandle : IDisposable
     {
         public bool Complete { get; private set; }
         public Exception? Exception { get; private set; }
@@ -76,10 +86,11 @@ namespace NewSocket.Models
         /// <summary>
         /// Cancels on completion of task, or on task cancellation.
         /// </summary>
-        public CancellationToken Token => m_TokenSource.Token;
+        public CancellationToken Token => Disposed ? new CancellationToken(true) : m_TokenSource.Token;
 
         private TaskCompletionSource<object?> m_Task = new TaskCompletionSource<object?>();
         private CancellationTokenSource m_TokenSource = new CancellationTokenSource();
+        private bool Disposed = false;
 
         public AsyncWaitHandle()
         {
@@ -92,7 +103,6 @@ namespace NewSocket.Models
                     if (Task.Exception != null)
                     {
                         Exception = Task.Exception.GetBaseException();
-
                     }
                     else
                     {
@@ -107,7 +117,7 @@ namespace NewSocket.Models
             await m_Task.Task;
         }
 
-        public void Wait(CancellationToken token)
+        public void Wait(CancellationToken token = default)
         {
             SpinWait.SpinUntil(() => m_Task.Task.IsCompleted || token.IsCancellationRequested);
         }
@@ -127,9 +137,17 @@ namespace NewSocket.Models
             m_Task.SetCanceled();
             m_TokenSource.Cancel();
         }
+
+        public void Dispose()
+        {
+            if (!Disposed)
+            {
+                Disposed = true;
+                m_TokenSource.Dispose();
+            }
+        }
     }
 }
-
 
 //using System;
 //using System.Threading;

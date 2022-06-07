@@ -15,15 +15,25 @@ namespace NewSocket.Protocals.NetSynced
 
         private ConcurrentDictionary<ulong, NetSyncedStream> m_StreamsNetID = new ConcurrentDictionary<ulong, NetSyncedStream>();
         private ConcurrentDictionary<ulong, TaskCompletionSource<NetSyncedStream>> m_StreamAwaiters = new ConcurrentDictionary<ulong, TaskCompletionSource<NetSyncedStream>>();
-
         private ISocketClient m_SocketClient { get; }
+
+        public int DefaultMaxBufferLength { get; set; } = 1024 * 1024 * 16;
 
         public NetSyncedProtocol(ISocketClient socketClient)
         {
             m_SocketClient = socketClient;
         }
 
-        public NetSyncedStream GetOrCreateDown(ulong netID, bool readable, bool writable)
+        public NetSyncedStream? GetExistingOrNull(ulong netID)
+        {
+            if (m_StreamsNetID.TryGetValue(netID, out var obj))
+            {
+                return obj;
+            }
+            return null;
+        }
+
+        public NetSyncedStream GetOrCreateDown(ulong netID, bool readable, bool writable, bool requireStart)
         {
             if (m_StreamsNetID.TryGetValue(netID, out var stream))
             {
@@ -50,8 +60,12 @@ namespace NewSocket.Protocals.NetSynced
                 up = new NetSyncedUpBuffer();
             }
 
-            stream = new NetSyncedStream(netID, down, up);
+            stream = new NetSyncedStream(netID, requireStart, down, up);
+            stream.MarkInitComplete();
+            stream.MaxNetworkBuffer = DefaultMaxBufferLength;
             m_StreamsNetID[netID] = stream;
+
+            m_SocketClient.Enqueue(new NetSyncedUp(stream, false));
 
             if (m_StreamAwaiters.TryGetValue(netID, out var handle))
             {
@@ -78,22 +92,15 @@ namespace NewSocket.Protocals.NetSynced
             return Task.FromResult<IMessageDown>(new NetSyncedDown(messageID, this));
         }
 
-        public NetSyncedStream CreateStream(bool readable, bool writable)
+        public NetSyncedStream CreateStream(bool readable, bool writable, bool requireStart = true)
         {
             var id = AssignRandomNetID();
 
-            var stream = GetOrCreateDown(id, readable, writable);
+            var stream = GetOrCreateDown(id, readable, writable, requireStart);
 
             m_StreamsNetID[id] = stream;
 
-            if (stream.UpBuffer != null)
-            {
-                m_SocketClient.Enqueue(new NetSyncedUp(id, stream.UpBuffer, readable, writable));
-            }
-            else
-            {
-                m_SocketClient.Enqueue(new NetSyncedUp(id, readable, writable));
-            }
+            m_SocketClient.Enqueue(new NetSyncedUp(stream));
 
             return stream;
         }

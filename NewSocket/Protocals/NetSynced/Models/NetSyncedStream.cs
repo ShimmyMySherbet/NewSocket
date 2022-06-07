@@ -1,26 +1,87 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NewSocket.Models;
 
 namespace NewSocket.Protocals.NetSynced.Models
 {
     public class NetSyncedStream : Stream
     {
         public ulong NetSyncedID { get; }
-        public NetSyncedStream(ulong netID, NetSyncedDownBuffer? down = null, NetSyncedUpBuffer? up = null)
+        public bool RequireSync { get; }
+
+        public bool Ready => !RequireSync || (LocalClientReady && RemoteClientReady);
+        public bool NeedsToWriteSync => LocalClientReady && !m_LocalStateWritten && RequireSync;
+
+        public bool LocalClientReady { get; private set; } = false;
+        public bool RemoteClientReady { get; private set; } = false;
+
+        private bool m_LocalStateWritten = false;
+        private AsyncWaitHandle m_RemoteReadyWait = new AsyncWaitHandle();
+        private AsyncWaitHandle m_InitWait = new AsyncWaitHandle();
+        private AsyncWaitHandle m_StateWait = new AsyncWaitHandle();
+
+        public async Task StartAsync()
+        {
+            LocalClientReady = true;
+            if (RequireSync)
+            {
+                await m_StateWait.WaitAsync();
+                await m_RemoteReadyWait.WaitAsync();
+            }
+        }
+
+        public void Start()
+        {
+            StartNonBlocking();
+            if (RequireSync)
+            {
+                m_StateWait.Wait();
+                m_RemoteReadyWait.Wait();
+            }
+        }
+
+        public void MarkStateWritten()
+        {
+            m_LocalStateWritten = true;
+            m_StateWait.Release();
+        }
+        public void MarkRemoteReady()
+        {
+            RemoteClientReady = true;
+            m_RemoteReadyWait.Release();
+        }
+
+
+        /// <summary>
+        /// Alternate to <seealso cref="StartAsync"/> or <seealso cref="Start"/>. Starts the socket non-blocking
+        /// </summary>
+        public void StartNonBlocking()
+        {
+            LocalClientReady = true;
+        }
+
+        public void MarkInitComplete()
+        {
+            m_InitWait.Release();
+        }
+
+        /// <summary>
+        /// The maximum bytes that can be allowed in the net buffer.
+        /// When the limit is reached, the socket is suspended until there is more space
+        /// </summary>
+        public int MaxNetworkBuffer { get; set; }
+
+        public NetSyncedStream(ulong netID, bool requireSync, NetSyncedDownBuffer? down = null, NetSyncedUpBuffer? up = null)
         {
             CanRead = down != null;
             CanWrite = up != null;
             UpBuffer = up;
             DownBuffer = down;
             NetSyncedID = netID;
+            RequireSync = requireSync;
         }
-
 
         public override bool CanRead { get; }
         public override bool CanSeek => false;
@@ -33,6 +94,12 @@ namespace NewSocket.Protocals.NetSynced.Models
 
         public override void Flush()
         {
+        }
+
+        public async Task<NetSyncedStream> WaitForInitAsync()
+        {
+            await m_InitWait.WaitAsync();
+            return this;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -87,7 +154,9 @@ namespace NewSocket.Protocals.NetSynced.Models
         {
             UpBuffer?.Dispose();
             DownBuffer?.Dispose();
+            m_InitWait.Dispose();
+            m_RemoteReadyWait.Dispose();
+            m_StateWait.Dispose();
         }
-
     }
 }

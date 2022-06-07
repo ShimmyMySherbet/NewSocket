@@ -51,13 +51,16 @@ namespace SocketTest
             var stream = Client.CreateStream(ENetSyncedMode.ReadWrite);
             ThreadPool.QueueUserWorkItem(async (_) =>
             {
-                using (stream)
-                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read))
+
+                if (stream.UpBuffer == null)
                 {
-                    await Task.Delay(2000);
-                    await file.CopyToAsync(stream);
-                    await file.FlushAsync();
+                    await stream.StartAsync();
+                    return;
                 }
+
+                stream.UpBuffer.SetSourceReplacement(new FileStream(path, FileMode.Open, FileAccess.Read));
+                await stream.StartAsync();
+                Console.WriteLine("[Server] synced");
             });
             return stream.NetSyncedID;
         }
